@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Israel Security OSINT Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial; background:#111; color:white; text-align:center; }
+    .card { background:#1c1c1c; padding:20px; margin:20px; border-radius:10px; }
+    .big { font-size:48px; font-weight:bold; }
+  </style>
+</head>
+<body>
+
+<h1>OSINT Security Radar</h1>
+
+<div class="card">
+  <div>Current Tension Index</div>
+  <div id="index" class="big">--</div>
+</div>
+
+<div class="card">
+  <canvas id="blocksChart"></canvas>
+</div>
+
+<script>
+fetch('../data/data.json')
+.then(res => res.json())
+.then(data => {
+  document.getElementById('index').innerText = data.index;
+
+  new Chart(document.getElementById('blocksChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Military', 'Rhetoric', 'OSINT', 'Regional'],
+      datasets: [{
+        label: 'Signal Strength',
+        data: [
+          data.blocks.military,
+          data.blocks.rhetoric,
+          data.blocks.osint_activity,
+          data.blocks.regional
+        ]
+      }]
+    }
+  });
+});
+</script>
+
+</body>
+</html>
