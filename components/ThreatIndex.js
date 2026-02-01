@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-// Простой круговой индикатор
+// Круговой индикатор Threat Index
 export default function ThreatIndex({ data }) {
   const [total, setTotal] = useState(0);
 
@@ -8,7 +8,6 @@ export default function ThreatIndex({ data }) {
     if (!data) return;
     console.log("ThreatIndex data:", data);
 
-    // Суммируем все значения компонентов (0-5) и переводим в процент
     const sum =
       (data.military || 0) +
       (data.rhetoric || 0) +
@@ -17,16 +16,15 @@ export default function ThreatIndex({ data }) {
       (data.cyber || 0) +
       (data.alerts || 0);
 
-    const maxSum = 5 * 6; // максимальное значение = 5*6 компонентов
+    const maxSum = 5 * 6;
     setTotal(Math.round((sum / maxSum) * 100));
   }, [data]);
 
-  // Цвет по проценту угрозы
   const getColor = (percent) => {
-    if (percent < 30) return "#4CAF50"; // зелёный
-    if (percent < 60) return "#FFC107"; // жёлтый
-    if (percent < 80) return "#FF9800"; // оранжевый
-    return "#F44336"; // красный
+    if (percent < 30) return "#4CAF50";
+    if (percent < 60) return "#FFC107";
+    if (percent < 80) return "#FF9800";
+    return "#F44336";
   };
 
   return (
@@ -54,7 +52,7 @@ export default function ThreatIndex({ data }) {
           stroke={getColor(total)}
           strokeWidth="20"
           fill="none"
-          strokeDasharray={`${(total * 565) / 100}, 565`} // 2*π*r ≈ 565
+          strokeDasharray={`${(total * 565) / 100}, 565`}
           strokeLinecap="round"
           transform="rotate(-90 100 100)"
         />
@@ -69,9 +67,7 @@ export default function ThreatIndex({ data }) {
           {total}%
         </text>
       </svg>
-      <div style={{ marginTop: "10px", color: "#aaa" }}>
-        Threat Index
-      </div>
+      <div style={{ marginTop: "10px", color: "#aaa" }}>Threat Index</div>
     </div>
   );
 }
