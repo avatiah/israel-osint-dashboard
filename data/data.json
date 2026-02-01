@@ -1,7 +1,5 @@
 {
   "last_update": "2026-02-01T10:00:00Z",
-  "index": 65,
-  "trend": 10,
   "blocks": {
     "military": 75,
     "rhetoric": 60,
@@ -12,13 +10,13 @@
     {
       "source": "ISW",
       "title": "Iranian forces mobilization reported",
-      "link": "https://www.understandingwar.org/...",
+      "link": "https://www.understandingwar.org/",
       "date": "2026-02-01T08:00:00Z"
     },
     {
       "source": "Bellingcat",
       "title": "New satellite images show troop movements",
-      "link": "https://www.bellingcat.com/...",
+      "link": "https://www.bellingcat.com/",
       "date": "2026-02-01T07:45:00Z"
     }
   ]
