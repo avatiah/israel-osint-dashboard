@@ -1,44 +1,38 @@
 export default async function handler(req, res) {
   try {
-    // Поиск по ключевым словам прогноза и анализа
-    const RSS_URL = 'https://news.google.com/rss/search?q=Israel+military+intelligence+forecast+analysis+strategic+report&hl=en-US';
+    const RSS_URL = 'https://news.google.com/rss/search?q=Israel+military+strategic+analysis+forecast&hl=en-US';
     const response = await fetch(RSS_URL);
     const xml = await response.text();
+    const titles = [...xml.matchAll(/<title>(.*?)<\/title>/g)].map(m => m[1]).slice(1, 20);
 
-    const titles = [...xml.matchAll(/<title>(.*?)<\/title>/g)].map(m => m[1]).slice(1, 25);
-    const pubDates = [...xml.matchAll(/<pubDate>(.*?)<\/pubDate>/g)].map(m => m[1]).slice(1, 25);
-
-    // Распределяем данные по экспертным секторам
-    const sectors = {
-      MILITARY_OPS: [],
-      STRATEGIC_INTEL: [],
-      CYBER_MARKET: []
-    };
-
-    titles.forEach((t, i) => {
+    // ОПРЕДЕЛЯЕМ ФАКТОРЫ
+    let counts = { kinetic: 0, strategic: 0, cyber: 0 };
+    
+    titles.forEach(t => {
       const text = t.toLowerCase();
-      const signal = { 
-        text: t.split(' - ')[0], 
-        time: new Date(pubDates[i]).toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'}) 
-      };
-
-      if (/(missile|attack|border|strike|hezbollah|hamas)/.test(text)) sectors.MILITARY_OPS.push(signal);
-      else if (/(intelligence|analysis|strategic|forecast|report|isw)/.test(text)) sectors.STRATEGIC_INTEL.push(signal);
-      else if (/(cyber|market|ils|economic|bank)/.test(text)) sectors.CYBER_MARKET.push(signal);
+      if (/(missile|strike|attack|clash|border)/.test(text)) counts.kinetic++;
+      if (/(analysis|forecast|strategic|intelligence|report)/.test(text)) counts.strategic++;
+      if (/(cyber|market|economy|bank)/.test(text)) counts.cyber++;
     });
 
-    // Расчет индекса на основе "плотности" экспертных мнений
-    const expertWeight = sectors.STRATEGIC_INTEL.length * 8;
-    const kineticWeight = sectors.MILITARY_OPS.length * 5;
-    const finalIndex = Math.min(15 + expertWeight + kineticWeight, 100);
+    // ВЛИЯНИЕ КАЖДОГО ФАКТОРА (профессиональная калибровка)
+    // Веса: Кинетика (40%), Стратегия (40%), Вторичные факторы (20%)
+    const f1 = Math.min(counts.kinetic * 7, 40);   // Прямые военные действия
+    const f2 = Math.min(counts.strategic * 10, 40); // Аналитические прогнозы
+    const f3 = Math.min(counts.cyber * 5, 20);     // Экономика и киберпространство
+
+    const totalIndex = 10 + f1 + f2 + f3; // 10% — базовый фон региона
 
     res.status(200).json({
-      index: finalIndex,
-      last_update: new Date().toISOString(),
-      sectors,
-      verdict: finalIndex > 75 ? "HIGH_PROBABILITY_OF_ESCALATION" : "ROUTINE_MONITORING"
+      index: Math.min(totalIndex, 100),
+      breakdown: [
+        { name: 'KINETIC_ACTIVITY', value: f1, desc: 'Прямые столкновения и обстрелы' },
+        { name: 'STRATEGIC_FORECAST', value: f2, desc: 'Прогнозы экспертов и разведки' },
+        { name: 'SYSTEMIC_STRESS', value: f3, desc: 'Давление на рынки и кибер-среду' }
+      ],
+      last_update: new Date().toISOString()
     });
   } catch (e) {
-    res.status(500).json({ error: "ANALYSIS_FAILED" });
+    res.status(500).json({ error: "CALIBRATION_FAILED" });
   }
 }
