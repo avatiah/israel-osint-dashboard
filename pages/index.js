@@ -4,58 +4,59 @@ export default function Home() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    const load = () => fetch('/api/data').then(r => r.json()).then(d => d && setData(d));
+    const load = () => fetch('/api/data').then(r => r.json()).then(d => setData(d));
     load();
-    const int = setInterval(load, 60000);
+    const int = setInterval(load, 45000);
     return () => clearInterval(int);
   }, []);
 
-  if (!data) return <div style={{background:'#000', color:'#0f0', height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'monospace'}}>&gt; AGGREGATING_EXPERT_DATA...</div>;
-
-  const SectorBox = ({ title, signals }) => (
-    <div style={{ border: '1px solid #0f0', padding: '15px', background: '#010' }}>
-      <div style={{ fontSize: '0.7rem', borderBottom: '1px solid #0f0', paddingBottom: '5px', marginBottom: '10px', color: '#0f0', fontWeight: 'bold' }}>
-        &gt; {title} ({signals.length})
-      </div>
-      {signals.length > 0 ? signals.slice(0, 3).map((s, i) => (
-        <div key={i} style={{ marginBottom: '10px', fontSize: '0.85rem', lineHeight: '1.2' }}>
-          <span style={{ opacity: 0.5, fontSize: '0.6rem' }}>[{s.time}]</span> {s.text}
-        </div>
-      )) : <div style={{ opacity: 0.3, fontSize: '0.7rem' }}>NO_CRITICAL_SIGNALS</div>}
-    </div>
-  );
+  if (!data) return <div style={{background:'#000', color:'#0f0', height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'monospace'}}>&gt; CALIBRATING_SYSTEM_WEIGHTS...</div>;
 
   return (
-    <div style={{ background: '#000', color: '#0f0', minHeight: '100vh', fontFamily: 'monospace', padding: '15px' }}>
-      {/* HEADER */}
-      <header style={{ border: '2px solid #0f0', padding: '15px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.1rem', letterSpacing: '2px' }}>STRATEGIC_SURVEILLANCE_CENTER</h1>
-          <div style={{ fontSize: '0.65rem', opacity: 0.7 }}>SOURCE: MULTI-CHANNEL_OSINT_ANALYSIS</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: data.index > 70 ? '#f00' : '#0f0' }}>{data.index}%</div>
-          <div style={{ fontSize: '0.6rem' }}>THREAT_INDEX</div>
-        </div>
+    <div style={{ background: '#000', color: '#0f0', minHeight: '100vh', fontFamily: 'monospace', padding: '20px' }}>
+      <header style={{ border: '1px solid #0f0', padding: '15px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }}>
+        <h1 style={{ margin: 0, fontSize: '1rem', letterSpacing: '2px' }}>OSINT_ANALYTICS_V5</h1>
+        <span style={{opacity: 0.5}}>{new Date(data.last_update).toLocaleTimeString()}</span>
       </header>
 
-      {/* VERDICT BAR */}
-      <div style={{ background: data.index > 70 ? '#300' : '#020', border: '1px solid #0f0', padding: '10px', marginBottom: '15px', textAlign: 'center', fontWeight: 'bold' }}>
-        SENTIMENT_VERDICT: {data.verdict}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '20px' }}>
+        
+        {/* ЛЕВАЯ ПАНЕЛЬ: ИТОГ */}
+        <div style={{ border: '1px solid #0f0', padding: '25px', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.7rem', opacity: 0.6, marginBottom: '10px' }}>TOTAL_AGGREGATED_THREAT</div>
+          <div style={{ fontSize: '5rem', fontWeight: 'bold', color: data.index > 75 ? '#f00' : '#0f0' }}>{data.index}%</div>
+          <div style={{ fontSize: '0.8rem', border: '1px solid #333', padding: '5px', marginTop: '10px' }}>
+            STATUS: {data.index > 80 ? 'CRITICAL_ALERT' : data.index > 50 ? 'ELEVATED_RISK' : 'STABLE'}
+          </div>
+        </div>
+
+        {/* ПРАВАЯ ПАНЕЛЬ: РАСШИФРОВКА */}
+        <div style={{ border: '1px solid #0f0', padding: '20px' }}>
+          <div style={{ fontSize: '0.7rem', borderBottom: '1px solid #0f0', paddingBottom: '10px', marginBottom: '20px' }}>DETECTION_FACTOR_INFLUENCE</div>
+          
+          {data.breakdown.map((f, i) => (
+            <div key={i} style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '5px' }}>
+                <span>{f.name}</span>
+                <span style={{ color: f.value > 30 ? '#f00' : '#0f0' }}>+{f.value}%</span>
+              </div>
+              {/* Прогресс-бар фактора */}
+              <div style={{ height: '4px', background: '#111', width: '100%' }}>
+                <div style={{ height: '100%', background: f.value > 30 ? '#f00' : '#0f0', width: `${(f.value / 40) * 100}%` }}></div>
+              </div>
+              <div style={{ fontSize: '0.6rem', opacity: 0.5, marginTop: '5px' }}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+
       </div>
 
-      {/* SECTOR GRID */}
-      <div className="sector-grid">
-        <SectorBox title="MILITARY_OPERATIONS" signals={data.sectors.MILITARY_OPS} />
-        <SectorBox title="STRATEGIC_INTELLIGENCE" signals={data.sectors.STRATEGIC_INTEL} />
-        <SectorBox title="MARKET_&_CYBER" signals={data.sectors.CYBER_MARKET} />
+      <div style={{ marginTop: '20px', padding: '15px', border: '1px solid #111', fontSize: '0.65rem', color: '#666', lineHeight: '1.4' }}>
+        <div style={{ color: '#0f0', marginBottom: '5px' }}>&gt; METHODOLOGY_NOTE:</div>
+        Индекс 100% достигается только при одновременном всплеске кинетической активности (бои), 
+        негативных прогнозах стратегических аналитиков (ISW/Reuters) и волатильности на рынках. 
+        Базовый уровень 10% установлен как константа для региона.
       </div>
-
-      <style jsx global>{`
-        .sector-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-        @media (max-width: 900px) { .sector-grid { grid-template-columns: 1fr; } }
-        body { background: #000; margin: 0; }
-      `}</style>
     </div>
   );
 }
