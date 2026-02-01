@@ -12,40 +12,41 @@ export default async function handler(req, res) {
       if (/(missile|attack|clash|bombardment|strike|explosion|idf)/.test(text)) kinetic += 1.8;
       if (/(intelligence|forecast|warning|threat|alert|hezbollah|tensions)/.test(text)) strategic += 1.2;
       if (/(ceasefire|reopening|negotiations|humanitarian|opening|truce|peace|aid)/.test(text)) deescalation += 2.5;
-      if (/(pentagon|carrier|us navy|white house|nuclear|iran strike)/.test(text)) usIran += 4.5;
+      if (/(pentagon|carrier|us navy|white house|nuclear|iran strike)/.test(text)) usIran += 5.5;
     });
 
     const liveIndex = Math.max(15, Math.min(Math.round(20 + (kinetic*3) + (strategic*4) - (deescalation*2.5)), 98));
     const iranStrikeIndex = Math.max(5, Math.min(Math.round(5 + usIran), 100));
 
-    // КОРРЕКЦИЯ ПРОГНОЗА: если индекс Ирана высок, прогноз по Израилю не может быть низким
-    const baseForecast = liveIndex * (deescalation > strategic ? 0.85 : 1.15);
-    const iranInfluence = iranStrikeIndex > 50 ? (iranStrikeIndex * 0.4) : 0;
-    const finalForecast = Math.min(Math.round(baseForecast + iranInfluence), 100);
+    // CORRELATED FORECAST LOGIC
+    // Israel Forecast is now a product of local dynamics AND the US-Iran threat level.
+    const localTrend = deescalation > (kinetic + strategic) ? 0.8 : 1.1;
+    const combinedForecast = (liveIndex * localTrend) + (iranStrikeIndex * 0.45);
+    const finalForecast = Math.min(Math.round(combinedForecast), 100);
 
     res.status(200).json({
       live: {
         index: liveIndex,
         verdict: liveIndex > 70 ? 'HIGH_TENSION' : 'ELEVATED_STABILITY',
         breakdown: [
-          { name: 'KINETIC_ACTIVITY', value: Math.round(Math.min(kinetic * 3, 40)), desc: 'Current tactical engagements.' },
-          { name: 'STRATEGIC_PRESSURE', value: Math.round(Math.min(strategic * 4, 40)), desc: 'Intelligence and threat reporting.' },
-          { name: 'DE-ESCALATION_SIGNS', value: Math.round(Math.min(deescalation * 2.5, 20)), desc: 'Diplomatic and humanitarian progress.' }
+          { name: 'KINETIC_ACTIVITY', value: Math.round(Math.min(kinetic * 3, 40)), desc: 'Current tactical engagements and border friction.' },
+          { name: 'STRATEGIC_PRESSURE', value: Math.round(Math.min(strategic * 4, 40)), desc: 'Intelligence reports and direct threat rhetoric.' },
+          { name: 'DE-ESCALATION_SIGNS', value: Math.round(Math.min(deescalation * 2.5, 20)), desc: 'Diplomatic progress and humanitarian relief.' }
         ]
       },
       forecast: {
         index: finalForecast,
-        verdict: finalForecast > 80 ? 'WAR_PROBABILITY_HIGH' : 'VOLATILITY_EXPECTED'
+        verdict: finalForecast > 80 ? 'CRITICAL_WAR_PROBABILITY' : 'REGIONAL_VOLATILITY'
       },
       iran_strike: {
         index: iranStrikeIndex,
         status: iranStrikeIndex > 80 ? 'IMMINENT_DANGER' : 'MONITORING_DETERRENCE',
-        desc: 'Probability of U.S. kinetic action against Iranian strategic assets.'
+        desc: 'Assessment of U.S. kinetic action against Iranian strategic assets or nuclear infrastructure.'
       },
-      key_argument: titles.find(t => /opening|reopens|analysis|iran|pentagon/i.test(t))?.split(' - ')[0] || "Strategic realignment in progress.",
+      key_argument: titles.find(t => /iran|pentagon|nuclear|strike|analysis/i.test(t))?.split(' - ')[0] || "Strategic monitoring of regional naval assets and air defense readiness.",
       last_update: new Date().toISOString()
     });
   } catch (e) {
-    res.status(500).json({ error: "API_OFFLINE" });
+    res.status(500).json({ error: "CALIBRATION_FAILED" });
   }
 }
