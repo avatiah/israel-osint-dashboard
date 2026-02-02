@@ -5,50 +5,52 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   try {
     const salt = Math.random().toString(36).substring(7);
-    const RSS_URL = `https://news.google.com/rss/search?q=Israel+military+Hezbollah+Gaza+Iran+Pentagon+US+Navy&hl=en-US&gl=US&ceid=US:en&cache_bust=${salt}`;
+    const RSS_URL = `https://news.google.com/rss/search?q=Israel+military+Hezbollah+Iran+Pentagon+Brent+Oil+ILS+rate&hl=en-US&gl=US&ceid=US:en&cache_bust=${salt}`;
     const response = await fetch(RSS_URL, { cache: 'no-store' });
     const xml = await response.text();
     const titles = [...xml.matchAll(/<title>(.*?)<\/title>/g)].map(m => m[1]);
 
-    // Аналитическая фильтрация
-    let score = { mil: 0, rhet: 0, log: 0 };
-    let iranSignals = 0;
-    
+    // АНАЛИТИЧЕСКИЙ ПАРСИНГ
+    let iranRhetoric = 0, usNavy = 0, kineticEvents = 0;
+    let brentPrice = "66.42", ilsRate = "3.12"; // Дефолтные значения на базе тренда 02.02.26
+
     const logs = titles.slice(1, 45).map(t => {
       const clean = t.split(' - ')[0].replace(/Day \d+[:|]/gi, '').trim();
       const low = clean.toLowerCase();
-      if (/(missile|strike|attack|killed|clash|raid)/.test(low)) score.mil += 5;
-      if (/(warn|threat|vow|khamenei|retaliate)/.test(low)) score.rhet += 3;
-      if (/(carrier|uss|navy|deployment|troop)/.test(low)) score.log += 4;
-      if (/(iran|tehran|khamenei|strait)/.test(low)) iranSignals += 1;
+      
+      // Поиск рыночных данных в реальном времени
+      if (low.includes('brent')) { const match = clean.match(/\d+\.\d+/); if (match) brentPrice = match[0]; }
+      if (low.includes('ils') || low.includes('shekel')) { const match = clean.match(/\d+\.\d+/); if (match) ilsRate = match[0]; }
+
+      // Геополитические веса
+      if (/(carrier|uss|navy|fleet)/.test(low)) usNavy += 1;
+      if (/(threat|vow|warn|khamenei|retaliate)/.test(low)) iranRhetoric += 1;
+      if (/(strike|missile|rocket|explosion|clash)/.test(low)) kineticEvents += 1;
+
       return clean;
     }).filter(t => t.length > 15);
 
-    // Расчет внешней угрозы (U.S. vs IRAN)
-    const iranIndex = Math.max(5, Math.min(Math.round(iranSignals * 8), 95));
-    
-    // Расчет MADAD OREF (с учетом внешнего фактора)
-    let baseRisk = (score.mil + score.rhet + score.log) / 4.2;
-    if (iranIndex > 60) baseRisk *= 1.4; // Множитель региональной эскалации
+    // НОВАЯ МАТЕМАТИКА ИРАНА (Развернутая)
+    // Вес авианосцев (max 30), Риторика (max 20), Кинетика (max 50)
+    const iranBase = Math.min(usNavy * 10, 30) + Math.min(iranRhetoric * 5, 20) + Math.min(kineticEvents * 5, 50);
+    const iranFinal = Math.max(15, iranBase);
 
-    const finalIndex = Math.max(12, Math.min(Math.round(baseRisk), 98));
+    // ОБЩИЙ ИНДЕКС (MADAD OREF)
+    const totalRisk = Math.round((kineticEvents * 4 + iranFinal * 0.5 + 10) / 2.1);
 
     res.status(200).json({
-      index: finalIndex,
-      iran_prob: iranIndex,
-      sectors: [
-        { n: 'NORTH', v: Math.min(score.mil * 1.5 + 10, 100) },
-        { n: 'SOUTH', v: Math.min(score.mil * 1.2 + 15, 100) },
-        { n: 'EAST', v: iranIndex }
-      ],
-      markets: {
-        poly: iranIndex > 50 ? "64%" : "14%",
-        oil: finalIndex > 40 ? "$84.20" : "$67.90",
-        ils: finalIndex > 40 ? "3.81" : "3.61"
+      index: Math.min(totalRisk, 95),
+      iran_detail: {
+        total: iranFinal,
+        factors: [
+          { n: "US Naval Presence", v: Math.min(usNavy * 10, 30) },
+          { n: "Escalatory Rhetoric", v: Math.min(iranRhetoric * 5, 20) },
+          { n: "Kinetic Activity", v: Math.min(kineticEvents * 5, 50) }
+        ]
       },
-      history: Array.from({length: 15}, (_, i) => Math.max(12, finalIndex + Math.floor(Math.random() * 10) - 5)).reverse(),
-      logs: logs.slice(0, 8),
+      markets: { brent: `$${brentPrice}`, ils: ilsRate, poly: iranFinal > 50 ? "42%" : "18%" },
+      logs: logs.slice(0, 7),
       updated: new Date().toISOString()
     });
-  } catch (e) { res.status(500).json({ error: 'SYSTEM_ERROR' }); }
+  } catch (e) { res.status(500).json({ error: 'OFFLINE' }); }
 }
