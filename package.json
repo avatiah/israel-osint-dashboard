@@ -1,6 +1,6 @@
 {
   "name": "madad-oref-osint",
-  "version": "25.3.0",
+  "version": "25.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "next": "14.2.35",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
-    "eslint": "^8",
+    "eslint": "8.57.1",
     "eslint-config-next": "14.2.35"
   }
 }
