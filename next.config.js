@@ -1,18 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: false,
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options', value: 'DENY' }
-        ],
-      },
-    ]
-  },
+  swcMinify: true, // Включаем обратно быстрый компилятор
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true }
 }
