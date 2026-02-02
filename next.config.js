@@ -2,12 +2,19 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: false,
-  eslint: {
-    ignoreDuringBuilds: true,
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' }
+        ],
+      },
+    ]
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  }
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true }
 }
 
 module.exports = nextConfig
