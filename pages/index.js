@@ -4,35 +4,38 @@ export default function StrategicTerminal() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    const sync = async () => {
+    const fetchData = async () => {
       try {
         const res = await fetch('/api/data');
         const json = await res.json();
         setData(json);
-      } catch (e) { console.error("Sync link broken"); }
+      } catch (e) {
+        console.error("Data fetch error: Link desynchronized.");
+      }
     };
-    sync();
-    const timer = setInterval(sync, 45000);
+
+    fetchData();
+    const timer = setInterval(fetchData, 60000); // Синхронизация раз в минуту
     return () => clearInterval(timer);
   }, []);
 
-  if (!data) return <div className="boot-loader">ESTABLISHING_DATA_LINK...</div>;
+  if (!data) return <div className="sys-loader">ESTABLISHING_DATA_LINK...</div>;
 
   return (
     <div className="terminal-container">
-      {/* ПАНЕЛЬ МОНИТОРИНГА: ТОЛЬКО РЕАЛЬНЫЕ ЦИФРЫ */}
+      {/* Bloomberg-style Status Bar */}
       <header className="admin-header">
-        <div className="brand">NODE: ASHDOD_DISTRICT // ADMIN_V72</div>
+        <div className="brand">NODE: ASHDOD_DISTRICT // ADMIN_V72.1</div>
         <div className="live-metrics">
-          BRENT_OIL: <span className="red">${data?.markets?.brent || "---"}</span>
+          BRENT_CRUDE: <span className="red">${data?.markets?.brent || "N/A"}</span>
           <span className="spacer">|</span>
-          USD_ILS: <span className="green">{data?.markets?.ils || "---"}</span>
+          USD_ILS: <span className="green">{data?.markets?.ils || "N/A"}</span>
         </div>
-        <div className="sys-clock">{new Date().toLocaleTimeString()} UTC</div>
+        <div className="sys-clock">{new Date(data?.updated).toLocaleTimeString()} UTC</div>
       </header>
 
       <div className="main-viewport">
-        {/* ЖИВАЯ ЛЕНТА СОБЫТИЙ */}
+        {/* ЖИВАЯ ЛЕНТА РАЗВЕДКИ (RSS) */}
         <section className="intel-scroll">
           <div className="panel-tag">VERIFIED_INTELLIGENCE_STREAM (RSS_LIVE)</div>
           <div className="entries">
@@ -48,15 +51,17 @@ export default function StrategicTerminal() {
           </div>
         </section>
 
-        {/* СТАТУС СИСТЕМЫ */}
+        {/* ПАНЕЛЬ СОСТОЯНИЯ СИСТЕМЫ */}
         <aside className="status-panel">
-          <div className="panel-tag">SYSTEM_INTEGRITY</div>
-          <div className="stat-line">ALPHA_VANTAGE: <span className={data?.markets?.brent === "LIMIT_REACHED" ? "yellow" : "green"}>{data?.markets?.brent === "LIMIT_REACHED" ? "RATE_LIMITED" : "ACTIVE"}</span></div>
+          <div className="panel-tag">NETWORK_INTEGRITY</div>
+          <div className="stat-line">ALPHA_VANTAGE: <span className={data?.markets?.brent === "LIMIT" ? "yellow" : "green"}>
+            {data?.markets?.brent === "LIMIT" ? "RATE_LIMITED" : "ACTIVE"}
+          </span></div>
           <div className="stat-line">RSS_GATEWAY: <span className="green">CONNECTED</span></div>
           
           <div className="operational-note">
             <div className="panel-tag" style={{marginTop:'30px'}}>PROTOCOL_V72</div>
-            <p>Данные поступают в реальном времени. Если блок Brent Oil показывает "LIMIT_REACHED", это означает временное ограничение бесплатного ключа Alpha Vantage. Лента новостей обновляется автоматически.</p>
+            <p>Терминал агрегирует динамические данные в реальном времени. Если блок Brent Oil показывает "LIMIT", это означает временное ограничение бесплатного ключа Alpha Vantage. Лента новостей работает независимо.</p>
           </div>
         </aside>
       </div>
@@ -68,7 +73,7 @@ export default function StrategicTerminal() {
         .admin-header { display: flex; justify-content: space-between; padding: 12px 20px; border-bottom: 2px solid #f00; font-weight: bold; font-size: 0.85rem; background: #0a0a0a; }
         .spacer { margin: 0 20px; color: #222; }
         
-        .main-viewport { display: grid; grid-template-columns: 1fr 300px; gap: 1px; background: #111; flex-grow: 1; overflow: hidden; }
+        .main-viewport { display: grid; grid-template-columns: 1fr 320px; gap: 1px; background: #111; flex-grow: 1; overflow: hidden; }
         .intel-scroll, .status-panel { background: #050505; padding: 25px; overflow-y: auto; }
         
         .panel-tag { font-size: 0.65rem; color: #555; margin-bottom: 20px; border-left: 2px solid #f00; padding-left: 10px; letter-spacing: 1px; }
@@ -85,7 +90,7 @@ export default function StrategicTerminal() {
         .green { color: #0f0; text-shadow: 0 0 5px #0f0; }
         .red { color: #f00; text-shadow: 0 0 5px #f00; }
         .yellow { color: #ff0; }
-        .boot-loader { height: 100vh; display: flex; align-items: center; justify-content: center; color: #f00; font-size: 1.2rem; letter-spacing: 4px; }
+        .sys-loader { height: 100vh; display: flex; align-items: center; justify-content: center; color: #f00; font-size: 1.2rem; letter-spacing: 4px; }
       `}</style>
     </div>
   );
