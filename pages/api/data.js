@@ -1,37 +1,67 @@
+// pages/api/data.js
+
 export default async function handler(req, res) {
-  let brent = "66.42", ils = "3.10", poly = "18";
-  let news = [];
+  const TIMEOUT = 3000; // 3 секунды на ответ от внешних сервисов
+
+  const fetchWithTimeout = async (url) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), TIMEOUT);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  };
 
   try {
-    const [fxRes, newsRes] = await Promise.all([
-      fetch('https://open.er-api.com/v6/latest/USD'),
-      fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.aljazeera.com/xml/rss/all.xml')
-    ]);
-    const fx = await fxRes.json();
+    // 1. ЖИВЫЕ РЫНКИ (USD/ILS)
+    const fxRes = await fetchWithTimeout('https://open.er-api.com/v6/latest/USD');
+    const fxData = await fxRes.json();
+    const currentILS = fxData.rates.ILS.toFixed(2);
+
+    // 2. ЖИВЫЕ НОВОСТИ (AL JAZEERA / REUTERS RSS)
+    const newsRes = await fetchWithTimeout('https://api.rss2json.com/v1/api.json?rss_url=https://www.aljazeera.com/xml/rss/all.xml');
     const newsData = await newsRes.json();
-    ils = fx.rates.ILS.toFixed(2);
-    news = newsData.items?.map(i => i.title) || [];
-  } catch (e) { console.log("External sync fallback"); }
+    const liveNews = newsData.items || [];
+    const newsTitles = liveNews.map(i => i.title.toLowerCase());
 
-  const isCriticalNews = news.some(t => /strike|attack|iran|missile/i.test(t));
-  const threatScore = isCriticalNews ? 78 : 22; // Профессиональный скачок при обнаружении угроз
+    // 3. МАТЕМАТИЧЕСКИЙ РАСЧЕТ РИСКА (На основе реальных слов)
+    // Веса: Strike (30), Missile (25), Iran (20), Explosion (25)
+    let dynamicScore = 15; // Базовый фон
+    if (newsTitles.some(t => t.includes('strike') || t.includes('attack'))) dynamicScore += 35;
+    if (newsTitles.some(t => t.includes('iran') || t.includes('hezbollah'))) dynamicScore += 25;
+    if (newsTitles.some(t => t.includes('missile') || t.includes('rocket'))) dynamicScore += 20;
+    
+    const finalVal = Math.min(dynamicScore, 98);
 
-  res.status(200).json({
-    updated: new Date().toISOString(),
-    markets: { brent, ils, poly: isCriticalNews ? "35" : "18" },
-    israel: { val: threatScore - 5, range: "14-22%", status: isCriticalNews ? "HIGH" : "MODERATE", color: isCriticalNews ? "#f00" : "#0f0" },
-    us_iran: { val: threatScore + 4, range: "18-26%", status: isCriticalNews ? "WAR_FOOTING" : "ELEVATED", color: isCriticalNews ? "#f00" : "#ff0",
-      triggers: { carrier: true, redlines: isCriticalNews, embassy: false, airspace: isCriticalNews }
-    },
-    analytics: [
-      { type: "FACT", org: "NASA", text: "Thermal monitoring: standard agricultural signatures in Galilee." },
-      { type: "SIGNAL", org: "OSINT_DR", text: "GPS spoofing (AisLib) active in Haifa/Tel-Aviv sectors." }
-    ],
-    feed: [
-      "[NASA_FIRMS] No major thermal anomalies detected in S. Lebanon",
-      "[ADS-B] GlobalHawk/RC-135 activity detected in East Med",
-      "[MARITIME] CSG-3 (USS Abraham Lincoln) maintaining Red Sea posture",
-      ...news.slice(0, 3)
-    ]
-  });
+    // 4. ТРИГГЕРЫ (На основе новостного контекста)
+    const triggers = {
+      carrier: true, // CSG-3 всегда там, это константа сейчас
+      redlines: newsTitles.some(t => t.includes('warn') || t.includes('ultimatum')),
+      evacuations: newsTitles.some(t => t.includes('evacuate') || t.includes('diplomat')),
+      airspace: newsTitles.some(t => t.includes('notam') || t.includes('airspace'))
+    };
+
+    res.status(200).json({
+      updated: new Date().toISOString(),
+      markets: {
+        brent: "DYNAMIC_WAIT", // Для нефти нужен чуть более сложный скрейпинг
+        ils: currentILS,
+        poly: finalVal > 60 ? "38" : "18"
+      },
+      israel: {
+        val: Math.max(finalVal - 10, 12),
+        status: finalVal > 70 ? "HIGH_ALERT" : "STABLE",
+        color: finalVal > 70 ? "#ff0" : "#0f0"
+      },
+      us_iran: {
+        val: finalVal,
+        status: finalVal > 75 ? "WAR_FOOTING" : "MONITORING",
+        triggers
+      },
+      feed: liveNews.slice(0, 6).map(item => item.title)
+    });
+
+  } catch (error) {
+    // Если всё упало - отдаем "Безопасный режим"
+    res.status(200).json({ error: "External Data Timeout - Low Signal" });
+  }
 }
