@@ -1,12 +1,10 @@
 export default async function handler(req, res) {
-  // Агрегированные данные из открытых разведывательных источников (OSINT)
-  // Актуально на 03.02.2026
   res.status(200).json({
     updated: new Date().toISOString(),
     indices: {
       polymarket: { val: "42%", trend: "up", label: "Crowdsourced War Probability" },
       metaculus: { val: "38%", trend: "stable", label: "Predictive AI Consensus" },
-      vix_regional: { val: "ELEVATED", trend: "up", label: "Geopolitical Volatility Index" }
+      vix: { val: "ELEVATED", trend: "up", label: "Geopolitical Volatility" }
     },
     intelligence_sources: [
       {
@@ -15,7 +13,7 @@ export default async function handler(req, res) {
         source_link: "https://understandingwar.org"
       },
       {
-        org: "OSINT Defender / BNO News",
+        org: "OSINT Defender",
         summary: "Electronic warfare (EW) activity in the Levant reached 24-month high. GPS spoofing reported at 88% of maritime hubs.",
         source_link: "https://twitter.com/osintdefender"
       },
