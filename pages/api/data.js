@@ -1,31 +1,40 @@
 export default async function handler(req, res) {
+  let ils = "3.75"; // Резервное значение
+  let news = [];
+
+  try {
+    // 1. ЖИВОЙ КУРС ВАЛЮТ (Open Exchange Rates API - свободный доступ)
+    const fxRes = await fetch(`https://open.er-api.com/v6/latest/USD`);
+    const fxData = await fxRes.json();
+    if (fxData.rates?.ILS) ils = fxData.rates.ILS.toFixed(2);
+
+    // 2. ЖИВЫЕ НОВОСТИ (OSINT через RSS верифицированных агентств, например Al Jazeera или Reuters)
+    // Используем rss2json как бесплатный прокси для парсинга
+    const newsRes = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=https://www.aljazeera.com/xml/rss/all.xml`);
+    const newsData = await newsRes.json();
+    news = newsData.items?.slice(0, 5).map(item => ({
+      title: item.title,
+      link: item.link,
+      pubDate: item.pubDate
+    })) || [];
+
+  } catch (e) {
+    console.error("External Sync Error:", e);
+  }
+
+  // Расчет динамического индекса на основе анализа ключевых слов в новостях (простейший OSINT-алгоритм)
+  const keywords = ["strike", "iran", "missile", "war", "escalation", "attack"];
+  let threatScore = 30; // Базовый уровень
+  news.forEach(n => {
+    keywords.forEach(k => {
+      if (n.title.toLowerCase().includes(k)) threatScore += 12;
+    });
+  });
+
   res.status(200).json({
     updated: new Date().toISOString(),
-    // Прогностические рынки (Консенсус тысяч экспертов и инвесторов)
-    prediction_markets: [
-      { id: "poly", org: "Polymarket", label: "War Probability", val: "42%", status: "ALARM", trend: "+3%" },
-      { id: "meta", org: "Metaculus", label: "Strike Forecast", val: "38%", status: "ELEVATED", trend: "0%" }
-    ],
-    // Оперативные OSINT-индикаторы
-    osint_indicators: [
-      { label: "GPS Interference (Levant)", val: "HIGH", color: "#f00", desc: "92% of AIS signals spoofed" },
-      { label: "Carrier Strike Group 3", val: "ACTIVE", color: "#f00", desc: "Position: Red Sea / Gulf" },
-      { label: "Uranium Enrichment", val: "60%+", color: "#ff0", desc: "IAEA monitoring restricted" }
-    ],
-    // Верифицированные аналитические сводки
-    intelligence: [
-      {
-        org: "Institute for the Study of War (ISW)",
-        impact: "CRITICAL",
-        text: "Confirmed Iranian troop movements in Eastern Syria suggest preparation for a coordinated response to sanctions.",
-        source: "https://understandingwar.org"
-      },
-      {
-        org: "International Crisis Group",
-        impact: "STABLE",
-        text: "Diplomatic backchannels remain open through Omani mediators, despite public escalatory rhetoric.",
-        source: "https://crisisgroup.org"
-      }
-    ]
+    ils: ils,
+    threatIndex: Math.min(threatScore, 99),
+    news: news
   });
 }
