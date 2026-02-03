@@ -26,17 +26,23 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     const load = () => fetch('/api/data').then(r => r.json()).then(setData);
-    load(); setInterval(load, 20000);
+    load();
+    const interval = setInterval(load, 20000);
+    return () => clearInterval(interval);
   }, []);
 
-  if (!mounted || !data) return <div className="loading">SYNCING_PRO_DATA_V52...</div>;
+  if (!mounted || !data) return <div className="loading">SYNCING_PRO_DATA...</div>;
+
+  const isAlarm = data.us_iran.val > 70;
 
   return (
-    <div className={`container ${data.us_iran.val > 70 ? 'alarm' : ''}`}>
+    <div className={`container ${isAlarm ? 'alarm' : ''}`}>
       <header className="header">
-        <div className="brand">Madad HaOref <span className="v">V52 // PLATINUM_PRO</span></div>
-        <div className="time">LIVE: {new Date(data.updated).toLocaleTimeString()}</div>
+        <div className="brand">Madad HaOref</div>
+        <div className="time">SYSTEM_TIME: {new Date(data.updated).toLocaleTimeString()}</div>
       </header>
+
+      {isAlarm && <div className="critical-banner">⚠️ CRITICAL THREAT LEVEL: WAR FOOTING ⚠️</div>}
 
       <div className="main-grid">
         <section className="card gauge-card">
@@ -45,7 +51,7 @@ export default function Home() {
         </section>
 
         <section className="card">
-          <div className="card-tag green">U.S. vs IRAN: HARD SIGNAL TRACKER</div>
+          <div className="card-tag green">HARD SIGNAL TRIGGER TRACKER</div>
           <div className="t-list">
             <div className="on">[X] US Carrier Groups Position (CSG-3)</div>
             <div className={data.us_iran.triggers.redlines ? 'on' : 'off'}>[{data.us_iran.triggers.redlines ? 'X' : ' '}] Final official ultimatums (State Dept)</div>
@@ -73,7 +79,7 @@ export default function Home() {
       </div>
 
       <section className="card">
-        <div className="card-tag green">VERIFIED EXPERT ANALYTICS (ISW / WSJ / CENTCOM)</div>
+        <div className="card-tag green">VERIFIED EXPERT ANALYTICS</div>
         {data.analytics.map((a, i) => (
           <div key={i} className="expert-row">
             <span className={`badge ${a.type}`}>{a.type}</span> <b>[{a.org}]</b> {a.text}
@@ -91,7 +97,10 @@ export default function Home() {
       </section>
 
       <footer className="footer">
-        OREF ANALYTICS // NOT OFFICIAL MILITARY ADVICE // FOLLOW PIKUD HAOREF
+        <div className="footer-top">Madad HaOref <span className="v-tag">V52 // PLATINUM_PRO</span></div>
+        <div className="footer-disclaimer">
+          OREF ANALYTICS // NOT OFFICIAL MILITARY ADVICE // FOLLOW PIKUD HAOREF
+        </div>
       </footer>
 
       <style jsx global>{`
@@ -99,8 +108,9 @@ export default function Home() {
         .container { max-width: 900px; margin: 0 auto; border: 1px solid #333; padding: 15px; }
         .alarm { border-color: #f00; box-shadow: inset 0 0 20px #500; }
         .header { display: flex; justify-content: space-between; border-bottom: 2px solid #f00; margin-bottom: 15px; padding-bottom: 5px; }
-        .brand { font-weight: 900; font-size: 1.2rem; }
-        .v { color: #f00; font-size: 0.7rem; }
+        .brand { font-weight: 900; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
+        .critical-banner { background: #f00; color: #fff; text-align: center; font-weight: bold; padding: 5px; margin-bottom: 10px; animation: blink 1s infinite; font-size: 0.8rem; }
+        @keyframes blink { 0% {opacity: 1} 50% {opacity: 0.5} 100% {opacity: 1} }
         .card { background: #050505; border: 1px solid #222; padding: 12px; margin-bottom: 12px; }
         .card-tag { font-size: 0.65rem; font-weight: 900; margin-bottom: 8px; border-bottom: 1px solid #111; }
         .main-grid, .mid-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; }
@@ -114,6 +124,10 @@ export default function Home() {
         .badge { font-size: 0.5rem; padding: 2px 4px; background: #222; margin-right: 5px; }
         .log-scroll { height: 130px; overflow-y: auto; font-size: 0.65rem; }
         .log-line { padding: 3px 0; border-bottom: 1px solid #111; }
+        .footer { margin-top: 20px; padding-top: 15px; border-top: 1px solid #333; text-align: center; }
+        .footer-top { font-size: 0.75rem; font-weight: bold; margin-bottom: 5px; color: #888; }
+        .v-tag { color: #f00; margin-left: 10px; }
+        .footer-disclaimer { font-size: 0.6rem; opacity: 0.5; letter-spacing: 1px; }
         .loading { background: #000; color: #0f0; height: 100vh; display: flex; align-items: center; justify-content: center; }
         @media (max-width: 650px) { .main-grid, .mid-grid { grid-template-columns: 1fr; } }
       `}</style>
