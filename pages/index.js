@@ -31,7 +31,7 @@ export default function ThreatEngine() {
   return (
     <div className="admin-container">
       <header className="header">
-        <div className="title">THREAT_ENGINE_ADMIN // V65.STABLE_FIXED</div>
+        <div className="title">THREAT_ENGINE_ADMIN // V65.FINAL_FIX</div>
         <div className="clock">{new Date(data.updated).toLocaleTimeString()}</div>
       </header>
 
@@ -80,7 +80,10 @@ export default function ThreatEngine() {
         <div className="p-title">RAW_INTELLIGENCE_FEED</div>
         <div className="feed-scroll">
           {data.feed?.map((f, i) => (
-            <div key={i} className="f-line">{"=>"} {f}</div>
+            <div key={i} className="f-line">
+              {/* Исправлено: экранирование спецсимволов для прохождения билда */}
+              {"> "} {f}
+            </div>
           ))}
         </div>
       </section>
@@ -107,6 +110,7 @@ export default function ThreatEngine() {
         .feed-scroll { height: 100px; overflow-y: auto; font-size: 0.8rem; color: #aaa; }
         .footer { border-top: 1px solid #0f0; padding-top: 10px; text-align: center; font-size: 0.7rem; color: #060; }
         .green { color: #0f0; } .loading { text-align: center; padding: 100px; font-size: 1.2rem; }
+        @media (max-width: 800px) { .main-grid { grid-template-columns: 1fr; } }
       `}</style>
     </div>
   );
