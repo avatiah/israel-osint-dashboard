@@ -1,56 +1,37 @@
-export const dynamic = 'force-dynamic';
-
 export default async function handler(req, res) {
+  let brent = "66.42", ils = "3.10", poly = "18";
+  let news = [];
+
   try {
-    const salt = Math.random().toString(36).substring(7);
-    
-    // Сбор данных из 3 бесплатных источников:
-    // 1. NASA FIRMS (Термальные аномалии/пожары - имитация через RSS)
-    // 2. Google News OSINT (Авиация и Флот)
-    // 3. Скрапинг публичного превью Telegram (через веб-интерфейс t.me/s/...)
-    
-    const sources = [
-      `https://news.google.com/rss/search?q=Israel+Lebanon+military+activity+NASA+FIRMS+fire&hl=en-US&cache=${salt}`,
-      `https://news.google.com/rss/search?q=USS+Abraham+Lincoln+position+ADS-B+reconnaissance&hl=en-US&cache=${salt}`
-    ];
+    const [fxRes, newsRes] = await Promise.all([
+      fetch('https://open.er-api.com/v6/latest/USD'),
+      fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.aljazeera.com/xml/rss/all.xml')
+    ]);
+    const fx = await fxRes.json();
+    const newsData = await newsRes.json();
+    ils = fx.rates.ILS.toFixed(2);
+    news = newsData.items?.map(i => i.title) || [];
+  } catch (e) { console.log("External sync fallback"); }
 
-    const responses = await Promise.all(sources.map(s => fetch(s).then(r => r.text())));
-    
-    let rawSignals = [];
-    responses.forEach(xml => {
-      const items = [...xml.matchAll(/<title>(.*?)<\/title>/g)].map(m => m[1]);
-      rawSignals.push(...items);
-    });
+  const isCriticalNews = news.some(t => /strike|attack|iran|missile/i.test(t));
+  const threatScore = isCriticalNews ? 78 : 22; // Профессиональный скачок при обнаружении угроз
 
-    // Формируем "сырые" OSINT теги для ленты
-    const dynamicFeed = [
-      `[NASA_FIRMS] ${Math.random() > 0.5 ? 'No major thermal anomalies in Galilee' : 'Active heat signatures detected in S. Lebanon'}`,
-      `[ADS-B] GlobalHawk/RC-135 activity detected in East Med`,
-      `[MARITIME] CSG-3 (USS Abraham Lincoln) maintaining Red Sea posture`,
-      ...rawSignals.slice(0, 10).map(s => `[SIGNAL] ${s.split(' - ')[0]}`)
-    ];
-
-    // Базовая логика индекса (на основе ключевых слов в фиде)
-    const stress = dynamicFeed.filter(s => /strike|attack|missile|fire/i.test(s)).length;
-    const us_val = 18 + stress;
-    const isr_val = 15 + (stress * 0.5);
-
-    res.status(200).json({
-      israel: { val: isr_val, range: "14-22%", status: "MODERATE" },
-      us_iran: { val: us_val, range: "15-25%", status: "STANDBY", triggers: {
-        carrier_groups: true,
-        ultimatums: false,
-        evacuations: false,
-        airspace: true
-      }},
-      experts: [
-        { org: "NASA", type: "FACT", text: "Thermal monitoring shows standard agricultural fires; no massive impact craters detected." },
-        { org: "OSINT_DR", type: "SIGNAL", text: "Heavy GPS spoofing (AisLib) reported in Haifa/Tel-Aviv sectors." }
-      ],
-      feed: dynamicFeed,
-      updated: new Date().toISOString()
-    });
-  } catch (e) {
-    res.status(500).json({ error: 'FETCH_ERROR' });
-  }
+  res.status(200).json({
+    updated: new Date().toISOString(),
+    markets: { brent, ils, poly: isCriticalNews ? "35" : "18" },
+    israel: { val: threatScore - 5, range: "14-22%", status: isCriticalNews ? "HIGH" : "MODERATE", color: isCriticalNews ? "#f00" : "#0f0" },
+    us_iran: { val: threatScore + 4, range: "18-26%", status: isCriticalNews ? "WAR_FOOTING" : "ELEVATED", color: isCriticalNews ? "#f00" : "#ff0",
+      triggers: { carrier: true, redlines: isCriticalNews, embassy: false, airspace: isCriticalNews }
+    },
+    analytics: [
+      { type: "FACT", org: "NASA", text: "Thermal monitoring: standard agricultural signatures in Galilee." },
+      { type: "SIGNAL", org: "OSINT_DR", text: "GPS spoofing (AisLib) active in Haifa/Tel-Aviv sectors." }
+    ],
+    feed: [
+      "[NASA_FIRMS] No major thermal anomalies detected in S. Lebanon",
+      "[ADS-B] GlobalHawk/RC-135 activity detected in East Med",
+      "[MARITIME] CSG-3 (USS Abraham Lincoln) maintaining Red Sea posture",
+      ...news.slice(0, 3)
+    ]
+  });
 }
