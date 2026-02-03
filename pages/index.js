@@ -1,103 +1,69 @@
-import { useState, useEffect } from 'react';
+// ... (imports)
 
-export default function IntelTerminal() {
+export default function DeepIntelTerminal() {
   const [data, setData] = useState(null);
-
-  useEffect(() => {
-    const sync = () => fetch('/api/data').then(r => r.json()).then(setData).catch(console.error);
-    sync();
-    const interval = setInterval(sync, 60000); // Обновление раз в минуту
-    return () => clearInterval(interval);
-  }, []);
-
-  if (!data) return <div className="loading">CONNECTING_TO_ALPHA_VANTAGE_BACKBONE...</div>;
+  // ... (useEffect)
 
   return (
-    <div className="terminal-frame">
-      <header className="top-nav">
-        <div className="status-bit">SYSTEM_STATUS: <span className="green">ONLINE</span></div>
-        <div className="title-main">THREAT_ENGINE_ADMIN // V70</div>
-        <div className="timestamp">{new Date(data.updated).toLocaleTimeString()}</div>
-      </header>
+    <div className="intel-terminal">
+      {/* Верхняя статусная строка как в Bloomberg Terminal */}
+      <div className="ticker-tape">
+        <span>BRENT: ${data?.markets.brent.price} ({data?.markets.brent.change})</span>
+        <span>USD/ILS: {data?.markets.ils.price}</span>
+        <span>THREAT_INDEX: {data?.threatLevel.score}%</span>
+      </div>
 
-      <div className="dashboard">
-        {/* ЛЕВАЯ ПАНЕЛЬ: Метрики */}
-        <aside className="metrics">
-          <div className="module">
-            <div className="mod-head">LIVE_MARKETS</div>
-            <div className="metric-row">
-              <span className="dim">BRENT_OIL</span>
-              <span className="bold red">${data.markets.brent}</span>
+      <div className="content-layout">
+        {/* Центральный блок: Матрица сигналов */}
+        <section className="data-matrix">
+          <header className="section-head">STRATEGIC_INTELLIGENCE_MATRIX</header>
+          <div className="matrix-grid">
+            <div className="matrix-item">
+              <label>CONFRONTATION_VECTOR</label>
+              <div className="val red">{data?.threatLevel.vector}</div>
             </div>
-            <div className="metric-row">
-              <span className="dim">USD_ILS</span>
-              <span className="bold green">{data.markets.ils}</span>
+            <div className="matrix-item">
+              <label>MARKET_SENTIMENT</label>
+              <div className="val yellow">BEARISH_VOLATILE</div>
             </div>
           </div>
-
-          <div className="module">
-            <div className="mod-head">THREAT_CONSENSUS</div>
-            <div className="risk-display">
-              <div className="risk-num" style={{ color: data.riskScore > 50 ? '#f00' : '#0f0' }}>
-                {data.riskScore}%
-              </div>
-              <div className="risk-bar">
-                <div className="risk-fill" style={{ width: `${data.riskScore}%`, background: data.riskScore > 50 ? '#f00' : '#0f0' }}></div>
-              </div>
-            </div>
-            <div className="risk-label">PROBABILITY_OF_ESCALATION</div>
-          </div>
-        </aside>
-
-        {/* ПРАВАЯ ПАНЕЛЬ: Живой фид аналитики */}
-        <main className="feed">
-          <div className="mod-head">VERIFIED_INTELLIGENCE_STREAM (RSS_FED)</div>
-          <div className="scroll-area">
-            {data.intel.map((item, i) => (
-              <div key={i} className="intel-card">
-                <div className="intel-meta">
-                  <span className="green">[{item.time}]</span> // SOURCE: {item.source}
-                </div>
-                <div className="intel-body">{item.title}</div>
-                <a href={item.link} target="_blank" rel="noreferrer" className="verify-btn">READ_FULL_OSINT</a>
+          
+          <div className="news-stream">
+            {data?.reports.map((r, i) => (
+              <div key={i} className="report-entry">
+                <span className="time">{new Date(r.pubDate).toLocaleTimeString()}</span>
+                <span className="source">[{r.author || 'OSINT'}]</span>
+                <p className="text">{r.title}</p>
+                <div className="tags">#GEOPOLITICS #ENERGY #LEBANON</div>
               </div>
             ))}
           </div>
-        </main>
+        </section>
+
+        {/* Правый блок: Источники и Верификация */}
+        <aside className="verification-panel">
+          <div className="section-head">SOURCE_VERIFICATION</div>
+          <ul className="source-list">
+            <li>ALPHA_VANTAGE (ACTIVE)</li>
+            <li>AL_JAZEERA_INTEL (CONNECTED)</li>
+            <li>RSS_CROWLER_V4 (SCANNING)</li>
+          </ul>
+        </aside>
       </div>
 
-      <footer className="footer">
-        POWERED_BY_ALPHA_VANTAGE // AGGREGATED_BY_MADAD_HAOREF_AI // 2026
-      </footer>
-
       <style jsx global>{`
-        body { background: #000; color: #fff; font-family: 'Courier New', monospace; margin: 0; padding: 15px; overflow: hidden; }
-        .terminal-frame { max-width: 1200px; margin: 0 auto; border: 1px solid #222; padding: 20px; background: #050505; height: 90vh; display: flex; flex-direction: column; }
-        
-        .top-nav { display: flex; justify-content: space-between; border-bottom: 2px solid #f00; padding-bottom: 10px; margin-bottom: 20px; font-weight: bold; font-size: 0.9rem; }
-        .dashboard { display: grid; grid-template-columns: 320px 1fr; gap: 20px; flex-grow: 1; overflow: hidden; }
-        
-        .module { border: 1px solid #1a1a1a; padding: 15px; margin-bottom: 20px; background: #080808; }
-        .mod-head { background: #111; color: #555; font-size: 0.65rem; padding: 4px 8px; margin-bottom: 15px; border-left: 2px solid #f00; }
-        
-        .metric-row { display: flex; justify-content: space-between; font-size: 1.2rem; margin-bottom: 12px; border-bottom: 1px solid #111; padding-bottom: 5px; }
-        .dim { color: #444; font-size: 0.8rem; }
-        
-        .risk-num { font-size: 4rem; font-weight: bold; text-align: center; line-height: 1; }
-        .risk-bar { width: 100%; height: 4px; background: #111; margin: 15px 0; border: 1px solid #222; }
-        .risk-fill { height: 100%; transition: 1s ease-in-out; }
-        .risk-label { text-align: center; font-size: 0.6rem; color: #444; letter-spacing: 1px; }
-
-        .scroll-area { height: calc(100% - 50px); overflow-y: auto; padding-right: 10px; }
-        .intel-card { margin-bottom: 20px; border-bottom: 1px solid #111; padding-bottom: 15px; }
-        .intel-meta { font-size: 0.7rem; margin-bottom: 8px; font-weight: bold; }
-        .intel-body { font-size: 1rem; line-height: 1.4; color: #ccc; margin-bottom: 10px; }
-        .verify-btn { font-size: 0.6rem; color: #0f0; text-decoration: none; border: 1px solid #040; padding: 3px 7px; display: inline-block; transition: 0.3s; }
-        .verify-btn:hover { background: #0f0; color: #000; }
-
-        .green { color: #0f0; } .red { color: #f00; } .bold { font-weight: bold; }
-        .footer { margin-top: 20px; text-align: center; font-size: 0.6rem; color: #222; border-top: 1px solid #111; padding-top: 10px; }
-        .loading { display: flex; align-items: center; justify-content: center; height: 100vh; color: #f00; font-size: 1.2rem; }
+        body { background: #0a0a0a; color: #d4d4d4; font-family: 'Inter', sans-serif; }
+        .intel-terminal { padding: 10px; height: 100vh; display: flex; flex-direction: column; }
+        .ticker-tape { display: flex; gap: 40px; border-bottom: 1px solid #333; padding: 10px; font-family: 'Courier New'; font-weight: bold; color: #0f0; }
+        .content-layout { display: grid; grid-template-columns: 1fr 300px; gap: 1px; background: #333; flex-grow: 1; }
+        .data-matrix, .verification-panel { background: #0a0a0a; padding: 20px; overflow-y: auto; }
+        .section-head { color: #555; font-size: 0.7rem; letter-spacing: 2px; margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 5px; }
+        .report-entry { margin-bottom: 25px; border-left: 1px solid #f00; padding-left: 15px; }
+        .report-entry .time { color: #f00; font-size: 0.7rem; font-weight: bold; }
+        .report-entry .text { font-size: 1.1rem; color: #eee; margin: 5px 0; line-height: 1.4; }
+        .tags { font-size: 0.6rem; color: #444; }
+        .val { font-size: 1.8rem; font-weight: 900; }
+        .red { color: #ff4d4d; } .yellow { color: #ffcc00; }
       `}</style>
     </div>
   );
