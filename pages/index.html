@@ -1,100 +1,57 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <title>THREAT ENGINE | ISRAEL SECURITY OSINT</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { 
-      font-family: 'Courier New', monospace; 
-      background: #0a0a0a; 
-      color: #00ff41; /* Тот самый зеленый */
-      text-align: center; 
-      margin: 0; padding: 20px;
-    }
-    .grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
-    .card { 
-      background: #111; 
-      padding: 20px; 
-      border: 1px solid #333; 
-      border-radius: 4px; 
-      box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
-    }
-    .big { font-size: 72px; font-weight: bold; color: #ff3e3e; } /* Индекс красный, если высокий */
-    .news-item { 
-      text-align: left; border-bottom: 1px solid #222; padding: 10px 0; font-size: 13px; 
-    }
-    .news-item span { color: #888; font-size: 11px; }
-    h1 { border-bottom: 2px solid #00ff41; display: inline-block; padding-bottom: 10px; }
-  </style>
-</head>
-<body>
-
-<h1>>> SECURITY_RADAR_V4.0</h1>
-
-<div class="grid">
-  <div>
-    <div class="card">
-      <div style="font-size: 12px; color: #888;">TENSION_INDEX_CURRENT</div>
-      <div id="index" class="big">--</div>
-      <div id="strike-prob" style="font-size: 14px; margin-top: 10px;">STRIKE_PROB: --</div>
-    </div>
-
-    <div class="card" style="margin-top: 20px;">
-      <canvas id="blocksChart"></canvas>
-    </div>
-  </div>
-
-  <div class="card">
-    <div style="text-align: left; margin-bottom: 10px; font-weight: bold;">[ LIVE_SIGNALS_FEED ]</div>
-    <div id="news-feed">Загрузка данных...</div>
-  </div>
-</div>
+<style>
+  /* Добавляем строгий стиль таблиц из твоих инструкций */
+  table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    font-family: 'Courier New', monospace;
+    border: 1px solid #00ff41;
+  }
+  th, td { 
+    border: 1px solid #333; 
+    padding: 10px; 
+    text-align: left; 
+  }
+  th { background: #1a1a1a; color: #00ff41; }
+</style>
 
 <script>
-fetch('data.json')
-.then(res => res.json())
-.then(data => {
-  // Обновляем текст
-  document.getElementById('index').innerText = data.index;
-  document.getElementById('strike-prob').innerText = 'STRIKE_PROBABILITY: ' + data.strike_probability;
-  
-  // Цвет индекса в зависимости от опасности
-  if(data.index < 40) document.getElementById('index').style.color = '#00ff41';
-  else if(data.index < 70) document.getElementById('index').style.color = '#ffcc00';
+// Обновленная функция загрузки
+async function refreshData() {
+  try {
+    const res = await fetch('data.json');
+    const data = await res.json();
+    
+    // Прямое обновление DOM
+    document.getElementById('index').innerText = data.index;
+    
+    // Если у тебя есть элемент для вероятности удара
+    const strikeEl = document.getElementById('strike-prob');
+    if(strikeEl) strikeEl.innerText = `STRIKE_PROB: ${data.strike_probability}`;
 
-  // Новости
-  const feed = document.getElementById('news-feed');
-  feed.innerHTML = data.signals.map(s => `
-    <div class="news-item">
-      <span>[${s.source}] ${new Date(s.date).toLocaleTimeString()}</span><br>
-      ${s.title}
-    </div>
-  `).join('');
+    // Рендеринг таблицы сигналов
+    const feed = document.getElementById('news-feed');
+    feed.innerHTML = `
+      <table>
+        <thead>
+          <tr><th>TIME</th><th>SOURCE</th><th>SIGNAL_DATA</th></tr>
+        </thead>
+        <tbody>
+          ${data.signals.map(s => `
+            <tr>
+              <td>${s.date.split('T')[1].substring(0,5)}</td>
+              <td>[${s.source}]</td>
+              <td>${s.title}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    console.error("Data fetch failed", e);
+  }
+}
 
-  // График
-  new Chart(document.getElementById('blocksChart'), {
-    type: 'bar',
-    data: {
-      labels: ['MIL', 'RHET', 'OSINT', 'REG'],
-      datasets: [{
-        label: 'Level',
-        data: [data.blocks.military, data.blocks.rhetoric, data.blocks.osint_activity, data.blocks.regional],
-        backgroundColor: 'rgba(0, 255, 65, 0.3)',
-        borderColor: '#00ff41',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      scales: {
-        y: { beginAtZero: true, grid: { color: '#222' }, ticks: { color: '#00ff41' } },
-        x: { ticks: { color: '#00ff41' } }
-      },
-      plugins: { legend: { display: false } }
-    }
-  });
-});
+refreshData();
+// Автообновление каждые 5 минут для симуляции "живых" данных
+setInterval(refreshData, 300000);
 </script>
-
-</body>
-</html>
