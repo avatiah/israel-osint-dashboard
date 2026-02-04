@@ -1,47 +1,51 @@
 import React, { useEffect, useState } from 'react';
 
-export default function ProfessionalDashboard() {
+export default function AnalystDashboard() {
   const [data, setData] = useState(null);
 
+  const sync = () => fetch('/api/data').then(r => r.json()).then(setData).catch(() => {});
+
   useEffect(() => {
-    const load = () => fetch('/api/data').then(r => r.json()).then(setData);
-    load();
-    const t = setInterval(load, 20000);
-    return () => clearInterval(t);
+    sync();
+    const timer = setInterval(sync, 10000);
+    return () => clearInterval(timer);
   }, []);
 
-  if (!data || data.error) return <div style={s.loader}>{">"} RECONNECTING_TO_INTELLIGENCE_NODES...</div>;
+  if (!data) return <div style={s.loader}>{">"} ACCESSING_INTEL_STREAM...</div>;
 
   return (
     <div style={s.container}>
       <header style={s.header}>
-        <h1 style={s.title}>MADAD_HAOREF // THREAT_ENGINE</h1>
-        <div style={s.sub}>SYNC_TIME: {new Date(data.timestamp).toLocaleTimeString()} UTC</div>
+        <div style={s.nodeInfo}>NODE: ASHDOD_ANALYTICS // V8.0</div>
+        <div style={s.time}>{new Date(data.timestamp).toLocaleString()}</div>
       </header>
 
       <div style={s.grid}>
-        {data.indices?.map(idx => (
-          <div key={idx.id} style={s.card}>
+        {data.nodes?.map(node => (
+          <section key={node.id} style={s.card}>
             <div style={s.cardHeader}>
-              <span style={s.label}>{idx.label}</span>
-              <span style={s.src}>{idx.source}</span>
+              <span style={s.title}>{node.title}</span>
+              <span style={{...s.value, color: node.value > 60 ? '#ff3e3e' : '#0f4'}}>{node.value}%</span>
             </div>
-            <div style={{...s.val, color: idx.val > 60 ? '#ff3e3e' : '#0f4'}}>{idx.val}%</div>
-            <div style={s.analysis}>{idx.analysis}</div>
-          </div>
+            <div style={s.summary}>{node.summary}</div>
+            <div style={s.specialistBox}>
+              <span style={s.specLabel}>ANALYST_COMMENT:</span> {node.specialist_view}
+            </div>
+          </section>
         ))}
       </div>
 
-      <div style={s.scenBox}>
-        <h3 style={s.scenTitle}>⚠️ СТРАТЕГИЧЕСКИЙ ПРОГНОЗ: {data.forecast.critical_date}</h3>
+      <section style={s.scenBox}>
+        <h2 style={s.scenTitle}>СЦЕНАРНЫЙ АНАЛИЗ // ДЕДЛАЙН: {data.scenario?.date}</h2>
         <p style={s.scenText}>
-          ТЕКУЩИЙ ВЕКТОР: <strong>{data.forecast.scenario}</strong>. <br/>
-          При срыве переговоров в Омане риск прямого столкновения вырастет до <strong>{data.forecast.impact}%</strong>. Аналитики указывают на 48-часовое окно после дедлайна.
+          ТЕКУЩИЙ ТРЕК: <strong style={{color:'#ff3e3e'}}>{data.scenario?.status}</strong>. <br/>
+          При срыве переговоров 6 февраля индекс удара США прогнозируется на уровне <strong>{data.scenario?.impact}%</strong>. 
+          Это означает автоматический переход к фазе "Kinetic Action".
         </p>
-      </div>
+      </section>
 
       <footer style={s.footer}>
-        TERMS: ДАННЫЕ АГРЕГИРОВАНЫ ИЗ ОТКРЫТЫХ ВОЕННЫХ И МЕДИА-ИСТОЧНИКОВ. НЕ ЯВЛЯЕТСЯ ПРИЗЫВОМ К ДЕЙСТВИЮ.
+        ВНИМАНИЕ: ДАННЫЕ ЯВЛЯЮТСЯ РЕЗУЛЬТАТОМ АВТОМАТИЧЕСКОГО OSINT-АНАЛИЗА. СЛЕДУЙТЕ УКАЗАНИЯМ СЛУЖБ БЕЗОПАСНОСТИ.
       </footer>
     </div>
   );
@@ -49,19 +53,20 @@ export default function ProfessionalDashboard() {
 
 const s = {
   container: { background: '#000', color: '#0f4', fontFamily: 'monospace', padding: '20px', minHeight: '100vh', textTransform: 'uppercase' },
-  header: { borderBottom: '2px solid #111', paddingBottom: '15px', marginBottom: '30px' },
-  title: { fontSize: '20px', letterSpacing: '2px', margin: 0 },
-  sub: { fontSize: '10px', color: '#444', marginTop: '5px' },
-  grid: { display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '600px', margin: '0 auto' },
+  header: { display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1a1a1a', paddingBottom: '10px', marginBottom: '30px' },
+  nodeInfo: { fontSize: '12px', letterSpacing: '1px' },
+  time: { fontSize: '12px', color: '#444' },
+  grid: { display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '800px', margin: '0 auto' },
   card: { border: '1px solid #222', padding: '20px', background: '#050505' },
-  cardHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px' },
-  label: { fontSize: '11px', fontWeight: 'bold' },
-  src: { fontSize: '9px', color: '#333' },
-  val: { fontSize: '48px', fontWeight: 'bold', margin: '5px 0' },
-  analysis: { fontSize: '12px', color: '#ccc', textTransform: 'none', lineHeight: '1.4', borderTop: '1px solid #111', paddingTop: '10px' },
-  scenBox: { border: '1px solid #500', background: '#100', padding: '20px', marginTop: '30px', maxWidth: '600px', margin: '30px auto' },
-  scenTitle: { fontSize: '14px', color: '#ff3e3e', margin: '0 0 10px 0' },
-  scenText: { fontSize: '13px', textTransform: 'none', color: '#eee', lineHeight: '1.5' },
-  footer: { fontSize: '9px', color: '#222', textAlign: 'center', marginTop: '40px' },
-  loader: { background: '#000', color: '#0f4', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' },
+  title: { fontSize: '14px', fontWeight: 'bold', color: '#888' },
+  value: { fontSize: '38px', fontWeight: 'bold' },
+  summary: { fontSize: '13px', color: '#eee', textTransform: 'none', lineHeight: '1.4', marginBottom: '15px' },
+  specialistBox: { background: '#0a0a0a', padding: '10px', borderLeft: '2px solid #0f4', fontSize: '11px', color: '#ccc', textTransform: 'none' },
+  specLabel: { color: '#0f4', fontWeight: 'bold', marginRight: '5px' },
+  scenBox: { border: '1px solid #400', background: '#100', padding: '20px', marginTop: '30px', maxWidth: '800px', margin: '30px auto' },
+  scenTitle: { fontSize: '14px', color: '#ff3e3e', margin: '0 0 15px 0' },
+  scenText: { fontSize: '13px', textTransform: 'none', lineHeight: '1.6', color: '#ddd' },
+  footer: { textAlign: 'center', fontSize: '10px', color: '#222', marginTop: '50px' },
+  loader: { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f4' }
 };
