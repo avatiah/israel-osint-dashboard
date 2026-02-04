@@ -1,23 +1,31 @@
 {
-  "last_update": "2026-02-01T10:00:00Z",
+  "last_update": "2026-02-04T10:30:00Z",
+  "index": 79,
+  "strike_probability": "48%",
   "blocks": {
-    "military": 75,
-    "rhetoric": 60,
-    "osint_activity": 80,
-    "regional": 40
+    "military": 89,
+    "rhetoric": 95,
+    "osint_activity": 74,
+    "regional": 68
   },
   "signals": [
     {
-      "source": "ISW",
-      "title": "Iranian forces mobilization reported",
-      "link": "https://www.understandingwar.org/",
-      "date": "2026-02-01T08:00:00Z"
+      "source": "REUTERS",
+      "title": "США перебросили дополнительные F-35 на базу Аль-Удейд перед дедлайном 6 февраля",
+      "link": "https://reuters.com",
+      "date": "2026-02-04T09:15:00Z"
     },
     {
-      "source": "Bellingcat",
-      "title": "New satellite images show troop movements",
-      "link": "https://www.bellingcat.com/",
-      "date": "2026-02-01T07:45:00Z"
+      "source": "KAN 11",
+      "title": "Кабинет безопасности Израиля завершил экстренное совещание по 'Северному фронту'",
+      "link": "https://kan.org.il",
+      "date": "2026-02-04T08:45:00Z"
+    },
+    {
+      "source": "OSINT_MONITOR",
+      "title": "Зафиксирована аномальная активность иранских транспортных самолетов в Сирии",
+      "link": "#",
+      "date": "2026-02-04T07:20:00Z"
     }
   ]
 }
