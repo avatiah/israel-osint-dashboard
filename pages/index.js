@@ -1,82 +1,94 @@
 import React, { useEffect, useState } from 'react';
 
-const IndexCard = ({ item }) => (
-  <div style={styles.card}>
-    <div style={styles.cardHeader}>
-      <h3 style={styles.cardTitle}>{item.label}</h3>
-      <span style={{...styles.range, color: item.color}}>{item.value}% {item.range}</span>
-    </div>
-    
-    <div style={styles.gaugeContainer}>
-      <div style={{...styles.progressBar, width: `${item.value}%`, backgroundColor: item.color}}></div>
-    </div>
-
-    <div style={styles.statusBadge}>{item.status}</div>
-    <p style={styles.analysisText}>{item.analysis}</p>
-    
-    <div style={styles.sourceBox}>
-      <span style={styles.sourceLabel}>ИСТОЧНИКИ (VERIFIED):</span>
-      <div style={styles.links}>
-        {item.sources.map((src, i) => (
-          <a key={i} href={src.url} target="_blank" style={styles.link}>[{src.name}]</a>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
 export default function MadadHaOref() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch('/api/data').then(res => res.json()).then(setData);
+    const fetchData = () => fetch('/api/data').then(res => res.json()).then(setData);
+    fetchData();
+    const timer = setInterval(fetchData, 60000); // Автообновление каждую минуту
+    return () => clearInterval(timer);
   }, []);
 
-  if (!data) return <div style={styles.loading}>LOADING_OSINT_NETWORK...</div>;
+  if (!data) return <div style={s.loader}>SYSTEM_BOOT...</div>;
 
   return (
-    <div style={styles.container}>
-      <header style={styles.header}>
-        <h1 style={styles.mainTitle}>{data.project_name}</h1>
-        <p style={styles.subtitle}>Система анализа угроз на основе ML-весов и OSINT</p>
+    <div style={s.container}>
+      {/* Шапка */}
+      <header style={s.header}>
+        <h1 style={s.title}>{data.project_name}</h1>
+        <div style={s.liveBadge}>LIVE FEED: {new Date(data.last_update).toLocaleTimeString()}</div>
       </header>
 
-      <main style={styles.main}>
-        {data.indices.map(item => <IndexCard key={item.id} item={item} />)}
-        
-        <section style={styles.methodologyBox}>
-          <h4>МЕТОДОЛОГИЯ РАСЧЕТА</h4>
-          <p>{data.methodology}</p>
-          <small>Анализ включает данные: Tasnim (Иран), Al-Mayadeen (Ливан), Reuters (Запад).</small>
-        </section>
-      </main>
+      {/* Объяснение для новичка */}
+      <section style={s.intro}>
+        <p><strong>Что вы видите?</strong> Это OSINT-мониторинг безопасности. Мы анализируем движение войск, спутники и заявления политиков, чтобы вы понимали уровень угрозы в реальном времени.</p>
+      </section>
 
-      <footer style={styles.footer}>
-        <strong>ДИСКЛАЙМЕР:</strong> Проект поддерживается независимым OSINT-сообществом. Мы соблюдаем нейтральность, анализируя как западные, так и региональные (иранские/арабские) источники. Не является официальной информацией Службы тыла.
+      {/* Спидометры угроз */}
+      <div style={s.grid}>
+        {data.indices.map(idx => (
+          <div key={idx.id} style={s.card}>
+            <div style={{display:'flex', justifyContent:'space-between'}}>
+              <span style={s.label}>{idx.label}</span>
+              <span style={{color: idx.value > 50 ? '#ff3e3e' : '#0f4'}}>{idx.trend === 'up' ? '▲' : '▼'}</span>
+            </div>
+            <div style={s.value}>{idx.value}%</div>
+            <div style={{...s.bar, width: `${idx.value}%`, backgroundColor: idx.value > 60 ? '#f00' : '#0f4'}}></div>
+            <p style={s.details}>{idx.details}</p>
+            <div style={s.sources}>Источники: {idx.sources.join(', ')}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* БЛОК: СЦЕНАРНЫЙ АНАЛИЗ */}
+      <section style={s.scenarioCard}>
+        <h3 style={s.scenarioTitle}>⚠️ {data.scenario_analysis.title}</h3>
+        <p style={{fontSize: '12px', color: '#ffcc00'}}>{data.scenario_analysis.trigger_event}</p>
+        <div style={{marginTop: '15px'}}>
+          {data.scenario_analysis.impact.map((imp, i) => (
+            <div key={i} style={s.impactItem}>
+              <span>{imp.target}: <strong>{imp.change}</strong></span>
+              <small style={{display:'block', color:'#666'}}>{imp.action}</small>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Живой поток сигналов */}
+      <section style={s.card}>
+        <h3 style={s.label}>ПОСЛЕДНИЕ СИГНАЛЫ (OSINT)</h3>
+        {data.live_signals.map((sig, i) => (
+          <div key={i} style={s.signal}>
+            <span style={{color:'#0f4'}}>[{sig.time}]</span> <span style={{color:'#888'}}>{sig.src}:</span> {sig.msg}
+          </div>
+        ))}
+      </section>
+
+      <footer style={s.footer}>
+        <strong>ДИСКЛАЙМЕР:</strong> Данные являются результатом частного анализа открытых источников (OSINT). Информация носит ознакомительный характер. В случае сирены следуйте в защищенное пространство.
       </footer>
     </div>
   );
 }
 
-const styles = {
-  container: { background: '#000', color: '#e0e0e0', fontFamily: 'monospace', minHeight: '100vh', padding: '15px' },
-  header: { textAlign: 'center', marginBottom: '25px', borderBottom: '1px solid #1a1a1a', paddingBottom: '15px' },
-  mainTitle: { color: '#00ff41', margin: 0, fontSize: '24px' },
-  subtitle: { fontSize: '10px', color: '#555', marginTop: '5px' },
-  main: { maxWidth: '600px', margin: '0 auto' },
-  card: { background: '#0a0a0a', border: '1px solid #222', padding: '15px', marginBottom: '20px', borderRadius: '4px' },
-  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
-  cardTitle: { fontSize: '14px', color: '#fff', margin: 0 },
-  range: { fontSize: '16px', fontWeight: 'bold' },
-  gaugeContainer: { background: '#111', height: '8px', borderRadius: '4px', overflow: 'hidden', marginBottom: '10px' },
-  progressBar: { height: '100%', transition: 'width 1.5s ease' },
-  statusBadge: { fontSize: '10px', fontWeight: 'bold', border: '1px solid #333', display: 'inline-block', padding: '2px 6px', marginBottom: '10px' },
-  analysisText: { fontSize: '13px', color: '#bbb', lineHeight: '1.4', marginBottom: '15px' },
-  sourceBox: { borderTop: '1px solid #1a1a1a', paddingTop: '10px' },
-  sourceLabel: { fontSize: '9px', color: '#444', display: 'block', marginBottom: '5px' },
-  links: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
-  link: { color: '#00ff41', fontSize: '11px', textDecoration: 'none' },
-  methodologyBox: { background: '#080808', padding: '15px', fontSize: '11px', borderLeft: '2px solid #00ff41', color: '#666' },
-  footer: { marginTop: '40px', fontSize: '10px', color: '#333', textAlign: 'justify', borderTop: '1px solid #111', paddingTop: '15px' },
-  loading: { background: '#000', color: '#0f4', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'monospace' }
+const s = {
+  container: { background: '#000', color: '#e0e0e0', fontFamily: 'monospace', padding: '15px', minHeight: '100vh', textTransform: 'uppercase' },
+  header: { textAlign: 'center', borderBottom: '1px solid #333', paddingBottom: '15px', marginBottom: '20px' },
+  title: { color: '#00ff41', margin: 0, fontSize: '20px' },
+  liveBadge: { fontSize: '10px', background: '#1a1a1a', display: 'inline-block', padding: '2px 8px', marginTop: '5px' },
+  intro: { fontSize: '12px', color: '#888', marginBottom: '20px', lineHeight: '1.4', background: '#0a0a0a', padding: '10px' },
+  grid: { display: 'flex', flexDirection: 'column', gap: '15px' },
+  card: { background: '#0f0f0f', border: '1px solid #222', padding: '15px', borderRadius: '4px' },
+  label: { fontSize: '11px', color: '#00ff41' },
+  value: { fontSize: '32px', fontWeight: 'bold', margin: '10px 0' },
+  bar: { height: '4px', transition: 'width 1s ease' },
+  details: { fontSize: '12px', color: '#bbb', marginTop: '10px', textTransform: 'none' },
+  sources: { fontSize: '9px', color: '#444', marginTop: '8px' },
+  scenarioCard: { background: '#1a0000', border: '1px solid #ff0000', padding: '15px', margin: '25px 0', borderRadius: '4px' },
+  scenarioTitle: { fontSize: '14px', color: '#ff3e3e', margin: '0 0 10px 0' },
+  impactItem: { borderBottom: '1px solid #300', padding: '8px 0', fontSize: '12px' },
+  signal: { fontSize: '11px', borderBottom: '1px solid #111', padding: '8px 0' },
+  footer: { fontSize: '10px', color: '#333', marginTop: '40px', textAlign: 'justify' },
+  loader: { background: '#000', color: '#0f4', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }
 };
