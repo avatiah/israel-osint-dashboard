@@ -1,5 +1,18 @@
 import { useEffect, useState } from 'react';
 
+const Gauge = ({ value, label, color, status }) => (
+  <div style={styles.gaugeBox}>
+    <h3 style={styles.label}>{label}</h3>
+    <svg viewBox="0 0 100 55" style={styles.svg}>
+      <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#222" strokeWidth="10" />
+      <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={color} 
+            strokeWidth="10" strokeDasharray={`${value * 1.26}, 126`} style={{transition: 'all 1s'}} />
+      <text x="50" y="45" textAnchor="middle" style={styles.gaugeVal}>{value}%</text>
+    </svg>
+    <div style={{color: color, fontWeight: 'bold', fontSize: '14px'}}>{status}</div>
+  </div>
+);
+
 export default function MadadHaOref() {
   const [data, setData] = useState(null);
 
@@ -7,74 +20,66 @@ export default function MadadHaOref() {
     fetch('/api/data').then(res => res.json()).then(setData);
   }, []);
 
-  if (!data) return <div style={styles.loading}>ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ...</div>;
+  if (!data) return <div style={styles.loading}>CONNECTING_TO_NODES...</div>;
 
   return (
     <div style={styles.container}>
-      {/* Шапка */}
       <header style={styles.header}>
         <h1 style={styles.title}>{data.project_name}</h1>
-        <div style={styles.badge}>LIVE OSINT FEED</div>
+        <small>ОПЕРАТИВНЫЙ МОНИТОРИНГ: 2026-02-04</small>
       </header>
 
-      {/* Основной Спидометр */}
-      <section style={styles.section}>
-        <div style={styles.gaugeContainer}>
-          <svg viewBox="0 0 100 55" style={styles.gauge}>
-            <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#222" strokeWidth="8" />
-            <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={getInsetColor(data.total_index)} 
-                  strokeWidth="8" strokeDasharray={`${data.total_index * 1.26}, 126`} />
-            <text x="50" y="45" textAnchor="middle" style={styles.gaugeText}>{data.total_index}</text>
-          </svg>
-          <p style={{color: getInsetColor(data.total_index)}}>{data.status_text}</p>
-        </div>
-      </section>
-
-      {/* Объяснение для обывателя */}
-      <section style={styles.card}>
-        <h3>ЧТО ЭТО ЗНАЧИТ?</h3>
-        <p style={styles.desc}>
-          Этот индекс показывает вероятность эскалации. <strong>{data.total_index} из 100</strong> означает, что ситуация 
-          напряжена до предела. Мы анализируем не слухи, а реальные движения войск и спутниковые снимки.
-        </p>
-      </section>
-
-      {/* Прозрачный расчет */}
-      <section style={styles.card}>
-        <h3>КАК МЫ СЧИТАЕМ?</h3>
+      {/* Спидометры */}
+      <Gauge value={data.israel_index.value} label="БЕЗОПАСНОСТЬ ИЗРАИЛЯ" color={data.israel_index.color} status={data.israel_index.status} />
+      
+      <div style={styles.infoCard}>
+        <strong>ПОЧЕМУ ТАКОЙ ИНДЕКС?</strong>
         <ul style={styles.list}>
-          <li><strong>Военные (40% веса):</strong> {data.details.military_mobilization}% — учитываем пуски, учения и флот.</li>
-          <li><strong>Слова (30% веса):</strong> {data.details.rhetoric}% — прямые угрозы Трампа и Хаменеи.</li>
-          <li><strong>OSINT (20% веса):</strong> {data.details.osint_activity}% — свежие снимки ядерных объектов.</li>
+          {data.israel_index.factors.map((f, i) => <li key={i}>{f}</li>)}
         </ul>
-        <small style={styles.formula}>{data.logic}</small>
-      </section>
+        <small style={styles.logicText}>{data.israel_index.logic}</small>
+      </div>
 
-      {/* Футер с дисклаймером */}
+      <hr style={styles.hr} />
+
+      <Gauge value={data.strike_index.value} label="ВЕРОЯТНОСТЬ УДАРА США" color={data.strike_index.color} status={data.strike_index.status} />
+
+      <div style={styles.infoCard}>
+        <strong>АНАЛИЗ СИТУАЦИИ:</strong>
+        <ul style={styles.list}>
+          {data.strike_index.factors.map((f, i) => <li key={i}>{f}</li>)}
+        </ul>
+        <small style={styles.logicText}>{data.strike_index.logic}</small>
+      </div>
+
+      <div style={styles.explanationBox}>
+        <h4>ДЛЯ ПОЛЬЗОВАТЕЛЯ:</h4>
+        <p>Индексы рассчитываются на основе OSINT-аналитики (движение войск, спутниковые снимки, риторика). 
+           <strong>Зеленый/Желтый</strong> цвет означает, что дипломатия всё ещё в приоритете.</p>
+      </div>
+
       <footer style={styles.footer}>
-        <p><strong>ДИСКЛАЙМЕР:</strong> Madad HaOref — это аналитический инструмент на основе открытых источников (OSINT). 
-        Данные не являются официальной директивой Командования тыла. В случае сирены — немедленно следуйте в убежище.</p>
-        <p>© 2026 Madad HaOref Project. Все права защищены.</p>
+        <strong>ДИСКЛАЙМЕР:</strong> Данный ресурс является частной OSINT-инициативой. 
+        Информация не является официальной. В случае возникновения ЧС ориентируйтесь 
+        исключительно на распоряжения Командования тыла (Pikud HaOref).
       </footer>
     </div>
   );
 }
 
-const getInsetColor = (val) => val > 75 ? '#ff4d4d' : val > 40 ? '#ffcc00' : '#00ff41';
-
 const styles = {
-  container: { background: '#000', color: '#e0e0e0', fontFamily: 'Courier New, monospace', minHeight: '100vh', padding: '15px' },
-  header: { textAlign: 'center', borderBottom: '1px solid #333', paddingBottom: '10px' },
-  title: { color: '#00ff41', fontSize: '1.4rem', margin: '10px 0' },
-  badge: { display: 'inline-block', background: '#00ff41', color: '#000', padding: '2px 8px', fontSize: '10px', fontWeight: 'bold' },
-  section: { padding: '20px 0', textAlign: 'center' },
-  gaugeContainer: { position: 'relative' },
-  gauge: { width: '100%', maxWidth: '300px' },
-  gaugeText: { fontSize: '12px', fontWeight: 'bold', fill: '#fff' },
-  card: { background: '#0a0a0a', border: '1px solid #1a1a1a', padding: '15px', marginBottom: '15px', borderRadius: '4px' },
-  desc: { fontSize: '14px', lineHeight: '1.5', color: '#bbb' },
-  list: { textAlign: 'left', fontSize: '13px', paddingLeft: '15px', color: '#0f4' },
-  formula: { fontSize: '10px', color: '#555', display: 'block', marginTop: '10px' },
-  footer: { fontSize: '11px', color: '#444', textAlign: 'justify', borderTop: '1px solid #222', paddingTop: '20px' },
+  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', padding: '15px', minHeight: '100vh' },
+  header: { textAlign: 'center', marginBottom: '30px', borderBottom: '1px solid #1a1a1a', paddingBottom: '10px' },
+  title: { fontSize: '24px', margin: '0' },
+  gaugeBox: { textAlign: 'center', marginBottom: '20px' },
+  label: { fontSize: '14px', marginBottom: '10px' },
+  svg: { width: '200px' },
+  gaugeVal: { fill: '#fff', fontSize: '16px', fontWeight: 'bold' },
+  infoCard: { background: '#0a0a0a', padding: '15px', border: '1px solid #1a1a1a', borderRadius: '4px', marginBottom: '30px' },
+  list: { fontSize: '12px', color: '#ccc', paddingLeft: '15px', marginTop: '10px' },
+  logicText: { fontSize: '10px', color: '#555', marginTop: '10px', display: 'block' },
+  hr: { border: '0', borderTop: '1px solid #333', margin: '20px 0' },
+  explanationBox: { background: '#111', padding: '15px', fontSize: '12px', borderLeft: '3px solid #0f4' },
+  footer: { fontSize: '10px', color: '#444', marginTop: '40px', textAlign: 'justify', lineHeight: '1.4' },
   loading: { background: '#000', color: '#0f4', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }
 };
