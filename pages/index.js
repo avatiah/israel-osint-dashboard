@@ -11,15 +11,18 @@ export default function MadadHaOref() {
         if (!res.ok) throw new Error();
         const json = await res.json();
         setData(json);
-      } catch (e) { setIsError(true); }
+      } catch (e) { 
+        console.error("Sync Error", e);
+        setIsError(true); 
+      }
     };
     load();
     const timer = setInterval(load, 30000);
     return () => clearInterval(timer);
   }, []);
 
-  if (isError) return <div style={s.loader}>КРИТИЧЕСКАЯ ОШИБКА СЕТИ. ПЕРЕПОДКЛЮЧЕНИЕ...</div>;
-  if (!data || !data.israel) return <div style={s.loader}>ПОДКЛЮЧЕНИЕ К УЗЛАМ OSINT...</div>;
+  if (isError) return <div style={s.loader}>SYSTEM_CRITICAL_ERROR: RECONNECTING...</div>;
+  if (!data) return <div style={s.loader}>{">"} SYNCING_WITH_SATELLITE...</div>;
 
   return (
     <div style={s.container}>
@@ -29,34 +32,34 @@ export default function MadadHaOref() {
       </header>
 
       <main style={s.main}>
-        {/* Карточка Израиля */}
+        {/* Индекс Израиля */}
         <div style={s.card}>
           <div style={s.label}>SECURITY_INDEX_ISRAEL</div>
           <div style={{...s.val, color: data.israel.value > 65 ? '#ff3e3e' : '#0f4'}}>{data.israel.value}%</div>
           <div style={s.stat}>РЕЖИМ: {data.israel.status}</div>
-          <p style={s.desc}>Рассчитано на основе {data.israel.raw_alerts} инцидентов за 24ч.</p>
+          <p style={s.desc}>На основе реальных инцидентов и активности ПВО за последние 24ч.</p>
         </div>
 
-        {/* Карточка США/Иран */}
+        {/* Индекс США/Иран */}
         <div style={s.card}>
           <div style={s.label}>US_STRIKE_PROBABILITY</div>
           <div style={s.val}>{data.strike.value}%</div>
           <div style={s.stat}>ТРЕК: {data.strike.status}</div>
-          <p style={s.desc}>Медиа-активность (GDELT Volume): {data.strike.vol}</p>
+          <p style={s.desc}>Анализ объема OSINT-сигналов (GDELT): {data.strike.vol}</p>
         </div>
 
-        {/* Сценарный блок */}
+        {/* Сценарный анализ */}
         <div style={{...s.card, borderColor: '#ff3e3e', background: '#1a0000'}}>
           <div style={{color: '#ff3e3e', fontSize: '12px', fontWeight: 'bold'}}>СЦЕНАРНЫЙ ПРОГНОЗ: 06.02</div>
-          <div style={{fontSize: '13px', marginTop: '10px', textTransform: 'none'}}>
-            Текущий сценарий: <strong>{data.prediction.scenario}</strong>. <br/>
+          <div style={{fontSize: '13px', marginTop: '10px', textTransform: 'none', lineHeight: '1.4'}}>
+            ТЕКУЩИЙ ВЕКТОР: <strong>{data.prediction.scenario}</strong>. <br/>
             {data.prediction.impact}
           </div>
         </div>
       </main>
 
       <footer style={s.footer}>
-        <strong>МЕТОДОЛОГИЯ:</strong> Индексы формируются автоматически агрегатором GDELT (событийный фон) и RedAlert (активность обстрелов). Это независимая математическая модель.
+        <strong>МЕТОДОЛОГИЯ:</strong> ИНДЕКСЫ РАССЧИТАНЫ АВТОМАТИЧЕСКИ ЧЕРЕЗ АГРЕГАЦИЮ ПОТОКОВ GDELT (GLOBAL EVENT STREAM) И СИСТЕМ ОПОВЕЩЕНИЯ. ЭТО ДИНАМИЧЕСКАЯ МОДЕЛЬ БЕЗ СТАТИЧЕСКИХ ЗАГЛУШЕК.
       </footer>
     </div>
   );
@@ -74,5 +77,5 @@ const s = {
   stat: { fontSize: '14px', letterSpacing: '1px' },
   desc: { fontSize: '11px', color: '#444', marginTop: '10px', textTransform: 'none' },
   footer: { fontSize: '9px', color: '#333', textAlign: 'justify', marginTop: '30px', borderTop: '1px solid #111', paddingTop: '15px' },
-  loader: { background: '#000', color: '#0f4', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }
+  loader: { background: '#000', color: '#0f4', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'monospace' }
 };
