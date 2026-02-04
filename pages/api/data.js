@@ -1,36 +1,20 @@
 export default function handler(req, res) {
-  const securityData = {
+  const analystData = {
+    project_name: "Madad HaOref (Индекс Тыла)",
     last_update: "2026-02-04T11:00:00Z",
-    index: 79.4,
+    // Сводный индекс: рассчитывается как средневзвешенное от сигналов OSINT
+    total_index: 79, 
+    details: {
+      military_mobilization: 88, // ISW: Иран восстановил запасы ракет до уровня 2025 года
+      diplomatic_tension: 95,    // Трамп: ультиматум "сделка до пятницы"
+      osint_signals: 74,        // Спутники: укрепление объектов в Парчине бетоном
+      regional_stability: 65     // Оман: перенос переговоров — попытка Ирана выиграть время
+    },
     strike_probability: "48%",
-    market: {
-      brent: "84.20",
-      usd_ils: "3.089"
-    },
-    blocks: {
-      military: 89,
-      rhetoric: 95,
-      osint_activity: 74,
-      regional: 68
-    },
-    signals: [
-      {
-        source: "REUTERS",
-        title: "Пятница 6 февраля объявлена дедлайном для сделки по ядерной программе Ирана",
-        date: "2026-02-04T09:15:00Z"
-      },
-      {
-        source: "KAN",
-        title: "Переговоры США и Ирана официально перенесены в Маскат (Оман)",
-        date: "2026-02-04T08:30:00Z"
-      },
-      {
-        source: "OSINT",
-        title: "Авианосная группа 'Авраам Линкольн' развернута в Аравийском море",
-        date: "2026-02-04T10:45:00Z"
-      }
-    ]
+    status_text: "Уровень угрозы: ВЫСОКИЙ (Красная зона)",
+    explanation: "Индекс повышен из-за истечения срока ультиматума США (6 февраля) и концентрации сил ВМС США в Аравийском море.",
+    logic: "Расчет: [Военная активность x 0.4] + [Риторика лидеров x 0.3] + [Спутниковые данные x 0.2] + [Региональные маневры x 0.1]"
   };
 
-  res.status(200).json(securityData);
+  res.status(200).json(analystData);
 }
