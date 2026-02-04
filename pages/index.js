@@ -1,70 +1,82 @@
 import React, { useEffect, useState } from 'react';
 
-const Gauge = ({ value = 0, label, color, status }) => (
-  <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-    <h3 style={{ fontSize: '14px', color: '#888', marginBottom: '12px' }}>{label}</h3>
-    <svg viewBox="0 0 100 55" style={{ width: '100%', maxWidth: '260px' }}>
-      <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1a1a1a" strokeWidth="10" />
-      <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={color} strokeWidth="10" 
-            strokeDasharray={`${(value || 0) * 1.26}, 126`} style={{ transition: 'stroke-dasharray 1s ease' }} />
-      <text x="50" y="45" textAnchor="middle" style={{ fill: '#fff', fontSize: '16px', fontWeight: 'bold', fontFamily: 'monospace' }}>{value}%</text>
-    </svg>
-    <div style={{ color: color, fontWeight: 'bold', letterSpacing: '1px', marginTop: '8px', fontSize: '14px' }}>{status}</div>
+const IndexCard = ({ item }) => (
+  <div style={styles.card}>
+    <div style={styles.cardHeader}>
+      <h3 style={styles.cardTitle}>{item.label}</h3>
+      <span style={{...styles.range, color: item.color}}>{item.value}% {item.range}</span>
+    </div>
+    
+    <div style={styles.gaugeContainer}>
+      <div style={{...styles.progressBar, width: `${item.value}%`, backgroundColor: item.color}}></div>
+    </div>
+
+    <div style={styles.statusBadge}>{item.status}</div>
+    <p style={styles.analysisText}>{item.analysis}</p>
+    
+    <div style={styles.sourceBox}>
+      <span style={styles.sourceLabel}>ИСТОЧНИКИ (VERIFIED):</span>
+      <div style={styles.links}>
+        {item.sources.map((src, i) => (
+          <a key={i} href={src.url} target="_blank" style={styles.link}>[{src.name}]</a>
+        ))}
+      </div>
+    </div>
   </div>
 );
 
 export default function MadadHaOref() {
   const [data, setData] = useState(null);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch('/api/data')
-      .then(res => {
-        if (!res.ok) throw new Error('Network error');
-        return res.json();
-      })
-      .then(json => setData(json))
-      .catch(err => {
-        console.error(err);
-        setError(true);
-      });
+    fetch('/api/data').then(res => res.json()).then(setData);
   }, []);
 
-  if (error) return <div style={{background:'#000', color:'red', padding:'20px'}}>SYSTEM_ERROR: КРИТИЧЕСКИЙ СБОЙ ДАННЫХ</div>;
-  if (!data) return <div style={{background:'#000', color:'#0f4', height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'monospace'}}>INIT_SECURE_LINK...</div>;
+  if (!data) return <div style={styles.loading}>LOADING_OSINT_NETWORK...</div>;
 
   return (
-    <div style={{ background: '#000', color: '#e0e0e0', fontFamily: 'monospace', minHeight: '100vh', padding: '20px', textTransform: 'uppercase' }}>
-      <header style={{ textAlign: 'center', borderBottom: '1px solid #222', paddingBottom: '20px', marginBottom: '30px' }}>
-        <h1 style={{ color: '#00ff41', margin: 0, fontSize: '24px', letterSpacing: '2px' }}>{data?.project_name}</h1>
-        <small style={{ color: '#555' }}>ANALYSIS TIMESTAMP: 2026-02-04 12:30 UTC</small>
+    <div style={styles.container}>
+      <header style={styles.header}>
+        <h1 style={styles.mainTitle}>{data.project_name}</h1>
+        <p style={styles.subtitle}>Система анализа угроз на основе ML-весов и OSINT</p>
       </header>
 
-      <main style={{ maxWidth: '500px', margin: '0 auto' }}>
-        {/* Индекс Израиля */}
-        <section style={{ marginBottom: '50px' }}>
-          <Gauge value={data?.israel_index?.value} label="SECURITY_INDEX_ISRAEL" color={data?.israel_index?.color} status={data?.israel_index?.status} />
-          <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', padding: '15px', borderRadius: '2px' }}>
-            <strong style={{ color: '#00ff41', fontSize: '14px' }}>ПОЧЕМУ ЭТО ВАЖНО:</strong>
-            <p style={{ color: '#aaa', fontSize: '13px', marginTop: '10px', lineHeight: '1.5', textTransform: 'none' }}>{data?.israel_index?.analysis}</p>
-            <div style={{ borderTop: '1px solid #222', marginTop: '10px', paddingTop: '10px', fontSize: '10px', color: '#444' }}>{data?.israel_index?.logic}</div>
-          </div>
-        </section>
-
-        {/* Индекс США/Иран */}
-        <section style={{ marginBottom: '50px' }}>
-          <Gauge value={data?.strike_index?.value} label="US_STRIKE_PROBABILITY" color={data?.strike_index?.color} status={data?.strike_index?.status} />
-          <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', padding: '15px', borderRadius: '2px' }}>
-            <strong style={{ color: '#00ff41', fontSize: '14px' }}>ГЕОПОЛИТИЧЕСКИЙ ВЕКТОР:</strong>
-            <p style={{ color: '#aaa', fontSize: '13px', marginTop: '10px', lineHeight: '1.5', textTransform: 'none' }}>{data?.strike_index?.analysis}</p>
-            <div style={{ borderTop: '1px solid #222', marginTop: '10px', paddingTop: '10px', fontSize: '10px', color: '#444' }}>{data?.strike_index?.logic}</div>
-          </div>
+      <main style={styles.main}>
+        {data.indices.map(item => <IndexCard key={item.id} item={item} />)}
+        
+        <section style={styles.methodologyBox}>
+          <h4>МЕТОДОЛОГИЯ РАСЧЕТА</h4>
+          <p>{data.methodology}</p>
+          <small>Анализ включает данные: Tasnim (Иран), Al-Mayadeen (Ливан), Reuters (Запад).</small>
         </section>
       </main>
 
-      <footer style={{ borderTop: '1px solid #222', paddingTop: '20px', fontSize: '11px', color: '#555', textAlign: 'justify', lineHeight: '1.4' }}>
-        <strong>DISCLAIMER:</strong> MADAD HAOREF — НЕЗАВИСИМЫЙ АНАЛИТИЧЕСКИЙ РЕСУРС. ИНДЕКСЫ РАССЧИТАНЫ НА ОСНОВЕ ПУБЛИЧНЫХ ОТЧЕТОВ ISW, INSS И OSINT-МОНИТОРИНГА. ЭТИ ДАННЫЕ НЕ ЯВЛЯЮТСЯ ОФИЦИАЛЬНЫМИ РЕКОМЕНДАЦИЯМИ. В СЛУЧАЕ ТРЕВОГИ СЛЕДУЙТЕ ИНСТРУКЦИЯМ СЛУЖБЫ ТЫЛА (PIKUD HAOREF).
+      <footer style={styles.footer}>
+        <strong>ДИСКЛАЙМЕР:</strong> Проект поддерживается независимым OSINT-сообществом. Мы соблюдаем нейтральность, анализируя как западные, так и региональные (иранские/арабские) источники. Не является официальной информацией Службы тыла.
       </footer>
     </div>
   );
 }
+
+const styles = {
+  container: { background: '#000', color: '#e0e0e0', fontFamily: 'monospace', minHeight: '100vh', padding: '15px' },
+  header: { textAlign: 'center', marginBottom: '25px', borderBottom: '1px solid #1a1a1a', paddingBottom: '15px' },
+  mainTitle: { color: '#00ff41', margin: 0, fontSize: '24px' },
+  subtitle: { fontSize: '10px', color: '#555', marginTop: '5px' },
+  main: { maxWidth: '600px', margin: '0 auto' },
+  card: { background: '#0a0a0a', border: '1px solid #222', padding: '15px', marginBottom: '20px', borderRadius: '4px' },
+  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
+  cardTitle: { fontSize: '14px', color: '#fff', margin: 0 },
+  range: { fontSize: '16px', fontWeight: 'bold' },
+  gaugeContainer: { background: '#111', height: '8px', borderRadius: '4px', overflow: 'hidden', marginBottom: '10px' },
+  progressBar: { height: '100%', transition: 'width 1.5s ease' },
+  statusBadge: { fontSize: '10px', fontWeight: 'bold', border: '1px solid #333', display: 'inline-block', padding: '2px 6px', marginBottom: '10px' },
+  analysisText: { fontSize: '13px', color: '#bbb', lineHeight: '1.4', marginBottom: '15px' },
+  sourceBox: { borderTop: '1px solid #1a1a1a', paddingTop: '10px' },
+  sourceLabel: { fontSize: '9px', color: '#444', display: 'block', marginBottom: '5px' },
+  links: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
+  link: { color: '#00ff41', fontSize: '11px', textDecoration: 'none' },
+  methodologyBox: { background: '#080808', padding: '15px', fontSize: '11px', borderLeft: '2px solid #00ff41', color: '#666' },
+  footer: { marginTop: '40px', fontSize: '10px', color: '#333', textAlign: 'justify', borderTop: '1px solid #111', paddingTop: '15px' },
+  loading: { background: '#000', color: '#0f4', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'monospace' }
+};
