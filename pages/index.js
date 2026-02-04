@@ -1,84 +1,69 @@
 import React, { useEffect, useState } from 'react';
 
-export default function MadadHaOref() {
+const Card = ({ item }) => (
+  <div style={s.card}>
+    <div style={{display:'flex', justifyContent:'space-between', alignItems:'start'}}>
+      <span style={s.label}>{item.label}</span>
+      <a href={item.source_url} target="_blank" style={s.srcLink}>[VERIFY_SRC]</a>
+    </div>
+    <div style={{...s.val, color: item.value > 60 ? '#ff3e3e' : '#0f4'}}>{item.value}%</div>
+    <div style={s.status}>STATUS: {item.status}</div>
+    <p style={s.desc}>{item.desc}</p>
+  </div>
+);
+
+export default function Dashboard() {
   const [data, setData] = useState(null);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/data');
-        if (!res.ok) throw new Error("API_DOWN");
-        const json = await res.json();
-        setData(json);
-        setError(false);
-      } catch (e) {
-        console.warn("Retrying sync...");
-        setError(true);
-      }
-    };
-    fetchData();
-    const interval = setInterval(fetchData, 15000); // Чаще опрос для динамики
-    return () => clearInterval(interval);
+    const load = () => fetch('/api/data').then(r => r.json()).then(setData);
+    load();
+    const t = setInterval(load, 20000);
+    return () => clearInterval(t);
   }, []);
 
-  if (error && !data) return <div style={s.loader}>RECONNECTING_TO_NODES...</div>;
-  if (!data) return <div style={s.loader}>{">"} INITIALIZING_MADAD_SYSTEM...</div>;
+  if (!data) return <div style={s.loader}>{">"} CONNECTING_TO_NODES...</div>;
 
   return (
     <div style={s.container}>
       <header style={s.header}>
-        <h1 style={s.title}>MADAD HAOREF</h1>
-        <div style={s.sub}>SYNC_TIME: {new Date(data.timestamp).toLocaleTimeString()}</div>
+        <h1 style={s.title}>MADAD_HAOREF_V2</h1>
+        <div style={s.sub}>LAST_SYNC: {new Date(data.timestamp).toLocaleTimeString()}</div>
       </header>
 
-      <main style={s.main}>
-        {/* Блок Израиля */}
-        <div style={s.card}>
-          <div style={s.label}>ISRAEL_SECURITY_INDEX</div>
-          <div style={{...s.val, color: data.israel.value > 65 ? '#ff4d4d' : '#00ff41'}}>
-            {data.israel.value}%
-          </div>
-          <div style={s.stat}>STATUS: {data.israel.status}</div>
-        </div>
+      <div style={s.grid}>
+        {data.indices?.map(idx => <Card key={idx.id} item={idx} />)}
+      </div>
 
-        {/* Блок США/Иран */}
-        <div style={s.card}>
-          <div style={s.label}>US_STRIKE_PROBABILITY</div>
-          <div style={s.val}>{data.strike.value}%</div>
-          <div style={s.stat}>MODE: {data.strike.status}</div>
-        </div>
-
-        {/* Сценарий 6 февраля */}
-        <div style={s.scenCard}>
-          <div style={{color: '#ff4d4d', fontSize: '12px', fontWeight: 'bold'}}>SCENARIO_ANALYSIS: 06.02</div>
-          <div style={s.scenText}>
-            ТЕКУЩИЙ ТРЕК: <strong>{data.prediction.scenario}</strong>. <br/>
-            Срыв переговоров в Омане поднимет риск до {data.prediction.impact}%.
-          </div>
-        </div>
-      </main>
+      <div style={s.scenBox}>
+        <div style={{color:'#ff3e3e', fontSize:'12px', fontWeight:'bold'}}>SCENARIO: OMAN_TALKS_DEADLINE (06.02)</div>
+        <p style={s.scenText}>
+          ТЕКУЩИЙ ТРЕК: <strong>{data.prediction?.scenario}</strong>. <br/>
+          В случае официального срыва переговоров, риск удара США автоматически корректируется до {data.prediction?.impact_val}%.
+        </p>
+      </div>
 
       <footer style={s.footer}>
-        MADAD HAOREF // REAL-TIME OSINT AGGREGATOR. <br/>
-        ДАННЫЕ ОБНОВЛЯЮТСЯ АВТОМАТИЧЕСКИ ИЗ GDELT И REDALERT.
+        СИСТЕМА РАБОТАЕТ НА ПРЯМЫХ ПОТОКАХ GDELT И REDALERT. ДАННЫЕ ОБНОВЛЯЮТСЯ В РЕАЛЬНОМ ВРЕМЕНИ.
       </footer>
     </div>
   );
 }
 
 const s = {
-  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', padding: '20px', minHeight: '100vh', textTransform: 'uppercase' },
-  header: { textAlign: 'center', marginBottom: '30px', borderBottom: '1px solid #111', paddingBottom: '15px' },
-  title: { fontSize: '24px', letterSpacing: '2px', margin: 0 },
+  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', padding: '15px', minHeight: '100vh', textTransform: 'uppercase' },
+  header: { borderBottom: '2px solid #333', paddingBottom: '10px', marginBottom: '20px', textAlign: 'center' },
+  title: { fontSize: '22px', margin: 0, letterSpacing: '2px' },
   sub: { fontSize: '10px', color: '#444' },
-  main: { maxWidth: '450px', margin: '0 auto' },
-  card: { border: '1px solid #222', padding: '20px', marginBottom: '20px', background: '#050505' },
-  label: { fontSize: '10px', color: '#888' },
-  val: { fontSize: '50px', fontWeight: 'bold', margin: '10px 0' },
-  stat: { fontSize: '14px' },
-  scenCard: { border: '1px solid #400', padding: '15px', background: '#100', marginBottom: '20px' },
-  scenText: { fontSize: '12px', marginTop: '10px', textTransform: 'none', color: '#ccc', lineHeight: '1.4' },
-  footer: { fontSize: '9px', color: '#222', textAlign: 'center', marginTop: '30px' },
-  loader: { background: '#000', color: '#0f4', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'monospace' }
+  grid: { display: 'flex', flexDirection: 'column', gap: '15px' },
+  card: { border: '1px solid #222', padding: '15px', background: '#050505' },
+  label: { fontSize: '11px', color: '#888' },
+  srcLink: { fontSize: '9px', color: '#00ff4133', textDecoration: 'none' },
+  val: { fontSize: '42px', fontWeight: 'bold', margin: '10px 0' },
+  status: { fontSize: '12px' },
+  desc: { fontSize: '11px', color: '#444', marginTop: '10px', textTransform: 'none' },
+  scenBox: { border: '1px solid #600', background: '#100', padding: '15px', marginTop: '20px' },
+  scenText: { fontSize: '12px', marginTop: '8px', textTransform: 'none', lineHeight: '1.4' },
+  footer: { fontSize: '9px', color: '#222', marginTop: '30px', textAlign: 'center' },
+  loader: { background: '#000', color: '#0f4', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }
 };
