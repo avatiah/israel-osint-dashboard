@@ -1,51 +1,57 @@
 import React, { useEffect, useState } from 'react';
 
-export default function AnalystDashboard() {
+export default function FinalDashboard() {
   const [data, setData] = useState(null);
 
-  const sync = () => fetch('/api/data').then(r => r.json()).then(setData).catch(() => {});
+  const fetchData = async () => {
+    try {
+      const res = await fetch('/api/data');
+      const json = await res.json();
+      setData(json);
+    } catch (e) { console.error("Sync fail"); }
+  };
 
   useEffect(() => {
-    sync();
-    const timer = setInterval(sync, 10000);
-    return () => clearInterval(timer);
+    fetchData();
+    const t = setInterval(fetchData, 15000);
+    return () => clearInterval(t);
   }, []);
 
-  if (!data) return <div style={s.loader}>{">"} ACCESSING_INTEL_STREAM...</div>;
+  if (!data) return <div style={s.loader}>{">"} RESTORING_INTELLIGENCE_STREAM...</div>;
 
   return (
     <div style={s.container}>
       <header style={s.header}>
-        <div style={s.nodeInfo}>NODE: ASHDOD_ANALYTICS // V8.0</div>
-        <div style={s.time}>{new Date(data.timestamp).toLocaleString()}</div>
+        <div style={s.meta}>NODE: ASHDOD_ANALYTICS // V10.0 // ENCRYPTED</div>
+        <div style={s.time}>{new Date(data.timestamp).toLocaleTimeString()} UTC</div>
       </header>
 
       <div style={s.grid}>
         {data.nodes?.map(node => (
-          <section key={node.id} style={s.card}>
-            <div style={s.cardHeader}>
-              <span style={s.title}>{node.title}</span>
-              <span style={{...s.value, color: node.value > 60 ? '#ff3e3e' : '#0f4'}}>{node.value}%</span>
+          <div key={node.id} style={s.card}>
+            <div style={s.cardTop}>
+              <span style={s.label}>{node.title}</span>
+              <span style={{...s.val, color: node.value > 65 ? '#ff3e3e' : '#0f4'}}>{node.value}%</span>
             </div>
-            <div style={s.summary}>{node.summary}</div>
-            <div style={s.specialistBox}>
-              <span style={s.specLabel}>ANALYST_COMMENT:</span> {node.specialist_view}
+            <div style={s.analysis}>{node.analysis}</div>
+            <div style={s.expert}>
+              <span style={{color:'#0f4'}}>EXPERT_VIEW:</span> {node.view}
             </div>
-          </section>
+          </div>
         ))}
       </div>
 
-      <section style={s.scenBox}>
-        <h2 style={s.scenTitle}>СЦЕНАРНЫЙ АНАЛИЗ // ДЕДЛАЙН: {data.scenario?.date}</h2>
+      <div style={s.scenBox}>
+        <h3 style={s.scenTitle}>⚠️ СТРАТЕГИЧЕСКИЙ ПРОГНОЗ: {data.prediction?.date}</h3>
         <p style={s.scenText}>
-          ТЕКУЩИЙ ТРЕК: <strong style={{color:'#ff3e3e'}}>{data.scenario?.status}</strong>. <br/>
-          При срыве переговоров 6 февраля индекс удара США прогнозируется на уровне <strong>{data.scenario?.impact}%</strong>. 
-          Это означает автоматический переход к фазе "Kinetic Action".
+          ТЕКУЩИЙ ТРЕК: <strong>{data.prediction?.status}</strong>. <br/>
+          При официальном срыве переговоров в Маскате, индекс удара вырастет до <strong>{data.prediction?.impact}%</strong>. 
+          Это приведет к активации протоколов быстрого реагирования.
         </p>
-      </section>
+      </div>
 
       <footer style={s.footer}>
-        ВНИМАНИЕ: ДАННЫЕ ЯВЛЯЮТСЯ РЕЗУЛЬТАТОМ АВТОМАТИЧЕСКОГО OSINT-АНАЛИЗА. СЛЕДУЙТЕ УКАЗАНИЯМ СЛУЖБ БЕЗОПАСНОСТИ.
+        DYNAMICS: REAL-TIME OSINT FEED // NO SIMULATION // NO DELAY
       </footer>
     </div>
   );
@@ -53,20 +59,19 @@ export default function AnalystDashboard() {
 
 const s = {
   container: { background: '#000', color: '#0f4', fontFamily: 'monospace', padding: '20px', minHeight: '100vh', textTransform: 'uppercase' },
-  header: { display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1a1a1a', paddingBottom: '10px', marginBottom: '30px' },
-  nodeInfo: { fontSize: '12px', letterSpacing: '1px' },
-  time: { fontSize: '12px', color: '#444' },
-  grid: { display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '800px', margin: '0 auto' },
-  card: { border: '1px solid #222', padding: '20px', background: '#050505' },
-  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' },
-  title: { fontSize: '14px', fontWeight: 'bold', color: '#888' },
-  value: { fontSize: '38px', fontWeight: 'bold' },
-  summary: { fontSize: '13px', color: '#eee', textTransform: 'none', lineHeight: '1.4', marginBottom: '15px' },
-  specialistBox: { background: '#0a0a0a', padding: '10px', borderLeft: '2px solid #0f4', fontSize: '11px', color: '#ccc', textTransform: 'none' },
-  specLabel: { color: '#0f4', fontWeight: 'bold', marginRight: '5px' },
-  scenBox: { border: '1px solid #400', background: '#100', padding: '20px', marginTop: '30px', maxWidth: '800px', margin: '30px auto' },
-  scenTitle: { fontSize: '14px', color: '#ff3e3e', margin: '0 0 15px 0' },
-  scenText: { fontSize: '13px', textTransform: 'none', lineHeight: '1.6', color: '#ddd' },
-  footer: { textAlign: 'center', fontSize: '10px', color: '#222', marginTop: '50px' },
-  loader: { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f4' }
+  header: { display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #222', paddingBottom: '15px', marginBottom: '25px' },
+  meta: { fontSize: '10px', color: '#555' },
+  time: { fontSize: '10px' },
+  grid: { display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '600px', margin: '0 auto' },
+  card: { border: '1px solid #222', padding: '15px', background: '#050505' },
+  cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
+  label: { fontSize: '11px', color: '#888' },
+  val: { fontSize: '40px', fontWeight: 'bold' },
+  analysis: { fontSize: '12px', color: '#ccc', textTransform: 'none', lineHeight: '1.4', marginBottom: '10px' },
+  expert: { fontSize: '10px', color: '#555', borderTop: '1px solid #111', paddingTop: '8px', textTransform: 'none' },
+  scenBox: { border: '1px solid #500', background: '#100', padding: '20px', marginTop: '25px', maxWidth: '600px', margin: '25px auto' },
+  scenTitle: { fontSize: '13px', color: '#ff3e3e', margin: '0 0 10px 0' },
+  scenText: { fontSize: '12px', textTransform: 'none', color: '#eee', lineHeight: '1.5' },
+  footer: { textAlign: 'center', fontSize: '9px', color: '#222', marginTop: '40px' },
+  loader: { height: '100vh', background: '#000', color: '#0f4', display: 'flex', alignItems: 'center', justifyContent: 'center' }
 };
