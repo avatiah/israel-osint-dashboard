@@ -1,49 +1,83 @@
-export default async function handler(req, res) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+import React, { useEffect, useState } from 'react';
 
-  try {
-    const [iranRes, israelRes, yemenRes] = await Promise.allSettled([
-      fetch(`https://api.gdeltproject.org/api/v2/doc/doc?query=(Iran%20OR%20US)%20(Strike%20OR%20Military%20OR%20Nuclear)&mode=TimelineVolInfo&format=json`, { signal: controller.signal }),
-      fetch(`https://api.redalert.me/alerts/history`, { signal: controller.signal }),
-      fetch(`https://api.gdeltproject.org/api/v2/doc/doc?query=(Houthi%20OR%20Yemen)%20(Attack%20OR%20Missile)&mode=TimelineVolInfo&format=json`, { signal: controller.signal })
-    ]);
+export default function SecurityTerminal() {
+  const [data, setData] = useState(null);
 
-    const iranVol = iranRes.status === 'fulfilled' && iranRes.value.ok ? (await iranRes.value.json()).timeline?.[0]?.data?.slice(-1)[0]?.value : 14.8;
-    const yemenVol = yemenRes.status === 'fulfilled' && yemenRes.value.ok ? (await yemenRes.value.json()).timeline?.[0]?.data?.slice(-1)[0]?.value : 9.5;
-    const alerts = israelRes.status === 'fulfilled' && israelRes.value.ok ? await israelRes.value.json() : [];
-    const alertsCount = Array.isArray(alerts) ? alerts.length : 0;
-
-    const strikeIndex = Math.min(22 + (iranVol * 4.1), 100).toFixed(1);
-    const israelIndex = Math.min(42 + (alertsCount * 1.5), 100).toFixed(0);
-    const yemenIndex = Math.min(28 + (yemenVol * 4.8), 100).toFixed(0);
-
-    res.status(200).json({
-      timestamp: new Date().toISOString(),
-      nodes: [
-        {
-          id: "IL", title: "SECURITY_INDEX_ISRAEL", value: israelIndex,
-          analysis: `Мониторинг ПВО: зафиксировано ${alertsCount} инцидентов. Режим готовности 'C' (Высокий).`,
-          view: "Стабилизация на фоне превентивных ударов по пусковым установкам прокси."
-        },
-        {
-          id: "US_IR", title: "US_IRAN_STRIKE_PROBABILITY", value: strikeIndex,
-          analysis: "Анализ GDELT: рост риторики о 'неминуемом ответе'. Концентрация сил ВМС США в Оманском заливе.",
-          view: "Индикаторы указывают на завершение этапа дипломатического давления."
-        },
-        {
-          id: "YE", title: "YEMEN_HOUTHI_THREAT", value: yemenIndex,
-          analysis: "Йемен (Хуситы): Активность в секторе Баб-эль-Мандеб. Повышенная вероятность пусков БПЛА.",
-          view: "Риск для коммерческого и военного судоходства оценивается как критический."
-        }
-      ],
-      prediction: {
-        date: "06.02.2026",
-        impact: (parseFloat(strikeIndex) + 40).toFixed(0),
-        status: iranVol > 12 ? "ESCALATION_LIKELY" : "NEGOTIATION_TRACK"
+  const updateData = async () => {
+    try {
+      const res = await fetch('/api/data');
+      if (!res.ok) return; // Не сбрасываем данные при ошибке сервера
+      const json = await res.json();
+      
+      // КРИТИЧЕСКАЯ ПРОВЕРКА: Если пришел пустой массив или ошибка, не обновляем экран
+      if (json && json.nodes && json.nodes.length > 0) {
+        setData(json);
       }
-    });
-  } catch (e) {
-    res.status(200).json({ error: "RECOVERY_MODE", timestamp: new Date().toISOString() });
-  } finally { clearTimeout(timeoutId); }
+    } catch (e) {
+      console.warn("API_TIMEOUT: Holding previous state.");
+    }
+  };
+
+  useEffect(() => {
+    updateData();
+    const timer = setInterval(updateData, 10000); // Опрос каждые 10 сек
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!data) return <div style={s.loader}>{">"} ESTABLISHING_SECURE_LINK...</div>;
+
+  return (
+    <div style={s.container}>
+      <header style={s.header}>
+        <div style={s.nodeInfo}>NODE: ASHDOD_ANALYTICS // V10.2 // STABLE_STREAM</div>
+        <div style={s.time}>{new Date(data.timestamp).toLocaleTimeString()} UTC</div>
+      </header>
+
+      <div style={s.grid}>
+        {data.nodes.map(node => (
+          <div key={node.id} style={s.card}>
+            <div style={s.cardTop}>
+              <span style={s.label}>{node.title}</span>
+              <span style={{...s.val, color: node.value > 60 ? '#ff3e3e' : '#0f4'}}>{node.value}%</span>
+            </div>
+            <div style={s.analysis}>{node.analysis}</div>
+            <div style={s.expert}>
+              <span style={{color:'#0f4'}}>EXPERT_VIEW:</span> {node.view}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={s.scenBox}>
+        <h3 style={s.scenTitle}>⚠️ СТРАТЕГИЧЕСКИЙ ПРОГНОЗ: {data.prediction?.date}</h3>
+        <p style={s.scenText}>
+          ТЕКУЩИЙ ТРЕК: <strong>{data.prediction?.status}</strong>. <br/>
+          При официальном срыве переговоров в Маскате, индекс удара вырастет до <strong>{data.prediction?.impact}%</strong>.
+        </p>
+      </div>
+
+      <footer style={s.footer}>
+        DYNAMICS: PERSISTENT ANALYTICS // NO DATA LOSS PROTOCOL ACTIVE
+      </footer>
+    </div>
+  );
 }
+
+const s = {
+  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', padding: '20px', minHeight: '100vh', textTransform: 'uppercase' },
+  header: { display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1a1a1a', paddingBottom: '10px', marginBottom: '25px' },
+  nodeInfo: { fontSize: '10px', color: '#444' },
+  time: { fontSize: '10px' },
+  grid: { display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '600px', margin: '0 auto' },
+  card: { border: '1px solid #222', padding: '15px', background: '#050505' },
+  cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
+  label: { fontSize: '11px', color: '#888' },
+  val: { fontSize: '40px', fontWeight: 'bold' },
+  analysis: { fontSize: '12px', color: '#ccc', textTransform: 'none', lineHeight: '1.4', marginBottom: '10px' },
+  expert: { fontSize: '10px', color: '#555', borderTop: '1px solid #111', paddingTop: '8px', textTransform: 'none' },
+  scenBox: { border: '1px solid #400', background: '#0a0000', padding: '20px', marginTop: '25px', maxWidth: '600px', margin: '25px auto' },
+  scenTitle: { fontSize: '13px', color: '#ff3e3e', margin: '0 0 10px 0' },
+  scenText: { fontSize: '12px', textTransform: 'none', color: '#eee', lineHeight: '1.5' },
+  footer: { textAlign: 'center', fontSize: '9px', color: '#222', marginTop: '40px' },
+  loader: { height: '100vh', background: '#000', color: '#0f4', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+};
