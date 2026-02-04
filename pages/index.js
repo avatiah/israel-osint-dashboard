@@ -1,97 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-export default function StrategicTerminal() {
+export default function Dashboard() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/data');
-        const json = await res.json();
-        setData(json);
-      } catch (e) {
-        console.error("Data fetch error: Link desynchronized.");
-      }
-    };
-
-    fetchData();
-    const timer = setInterval(fetchData, 60000); // Синхронизация раз в минуту
-    return () => clearInterval(timer);
+    fetch('/api/data')
+      .then((res) => res.json())
+      .then((d) => setData(d))
+      .catch((err) => console.error("Ошибка загрузки:", err));
   }, []);
 
-  if (!data) return <div className="sys-loader">ESTABLISHING_DATA_LINK...</div>;
+  if (!data) return <div style={{background:'#000', color:'#0f4', height:'100vh', padding:'20px'}}>LOADING_SYSTEM_NODES...</div>;
 
   return (
-    <div className="terminal-container">
-      {/* Bloomberg-style Status Bar */}
-      <header className="admin-header">
-        <div className="brand">NODE: ASHDOD_DISTRICT // ADMIN_V72.1</div>
-        <div className="live-metrics">
-          BRENT_CRUDE: <span className="red">${data?.markets?.brent || "N/A"}</span>
-          <span className="spacer">|</span>
-          USD_ILS: <span className="green">{data?.markets?.ils || "N/A"}</span>
-        </div>
-        <div className="sys-clock">{new Date(data?.updated).toLocaleTimeString()} UTC</div>
+    <div style={{ background: '#000', color: '#00ff41', fontFamily: 'monospace', minHeight: '100vh', padding: '20px' }}>
+      <header style={{ borderBottom: '1px solid #f00', paddingBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
+        <span>NODE: ASHDOD_DISTRICT // ADMIN_V72.1</span>
+        <span>BRENT_CRUDE: <span style={{color: '#f00'}}>${data.market.brent}</span></span>
+        <span>USD_ILS: {data.market.usd_ils}</span>
+        <span>{new Date(data.last_update).toUTCString()}</span>
       </header>
 
-      <div className="main-viewport">
-        {/* ЖИВАЯ ЛЕНТА РАЗВЕДКИ (RSS) */}
-        <section className="intel-scroll">
-          <div className="panel-tag">VERIFIED_INTELLIGENCE_STREAM (RSS_LIVE)</div>
-          <div className="entries">
-            {data?.intel?.length > 0 ? data.intel.map((item, i) => (
-              <div key={i} className="intel-row">
-                <span className="timestamp">[{item.time}]</span>
-                <span className="node-tag"> SOURCE: {item.source} </span>
-                <a href={item.link} target="_blank" rel="noreferrer" className="headline">
-                  {item.title}
-                </a>
-              </div>
-            )) : <div className="error-msg">AWAITING_INCOMING_PACKETS_FROM_NODE...</div>}
+      <main style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
+        <section style={{ border: '1px solid #333', padding: '15px' }}>
+          <h3>TENSION_INDEX</h3>
+          <div style={{ fontSize: '64px', fontWeight: 'bold', color: data.index > 75 ? '#ff3e3e' : '#0f4' }}>
+            {data.index}
           </div>
+          <p>STRIKE_PROB: {data.strike_probability}</p>
         </section>
 
-        {/* ПАНЕЛЬ СОСТОЯНИЯ СИСТЕМЫ */}
-        <aside className="status-panel">
-          <div className="panel-tag">NETWORK_INTEGRITY</div>
-          <div className="stat-line">ALPHA_VANTAGE: <span className={data?.markets?.brent === "LIMIT" ? "yellow" : "green"}>
-            {data?.markets?.brent === "LIMIT" ? "RATE_LIMITED" : "ACTIVE"}
-          </span></div>
-          <div className="stat-line">RSS_GATEWAY: <span className="green">CONNECTED</span></div>
-          
-          <div className="operational-note">
-            <div className="panel-tag" style={{marginTop:'30px'}}>PROTOCOL_V72</div>
-            <p>Терминал агрегирует динамические данные в реальном времени. Если блок Brent Oil показывает "LIMIT", это означает временное ограничение бесплатного ключа Alpha Vantage. Лента новостей работает независимо.</p>
-          </div>
-        </aside>
-      </div>
-
-      <style jsx global>{`
-        body { background: #000; color: #fff; font-family: 'Courier New', monospace; margin: 0; padding: 15px; overflow: hidden; }
-        .terminal-container { border: 1px solid #333; height: 92vh; display: flex; flex-direction: column; background: #050505; }
-        
-        .admin-header { display: flex; justify-content: space-between; padding: 12px 20px; border-bottom: 2px solid #f00; font-weight: bold; font-size: 0.85rem; background: #0a0a0a; }
-        .spacer { margin: 0 20px; color: #222; }
-        
-        .main-viewport { display: grid; grid-template-columns: 1fr 320px; gap: 1px; background: #111; flex-grow: 1; overflow: hidden; }
-        .intel-scroll, .status-panel { background: #050505; padding: 25px; overflow-y: auto; }
-        
-        .panel-tag { font-size: 0.65rem; color: #555; margin-bottom: 20px; border-left: 2px solid #f00; padding-left: 10px; letter-spacing: 1px; }
-        
-        .intel-row { margin-bottom: 18px; font-size: 0.95rem; border-bottom: 1px solid #0f0f0f; padding-bottom: 10px; }
-        .timestamp { color: #f00; margin-right: 12px; font-size: 0.8rem; }
-        .node-tag { font-size: 0.6rem; color: #0f0; border: 1px solid #040; padding: 1px 4px; margin-right: 12px; }
-        .headline { color: #ccc; text-decoration: none; transition: 0.2s; }
-        .headline:hover { color: #fff; background: #1a0000; }
-
-        .stat-line { font-size: 0.75rem; margin-bottom: 12px; border-bottom: 1px solid #111; padding-bottom: 5px; }
-        .operational-note p { font-size: 0.65rem; color: #333; line-height: 1.6; text-align: justify; }
-
-        .green { color: #0f0; text-shadow: 0 0 5px #0f0; }
-        .red { color: #f00; text-shadow: 0 0 5px #f00; }
-        .yellow { color: #ff0; }
-        .sys-loader { height: 100vh; display: flex; align-items: center; justify-content: center; color: #f00; font-size: 1.2rem; letter-spacing: 4px; }
-      `}</style>
+        <section style={{ border: '1px solid #333', padding: '15px' }}>
+          <h3>VERIFIED_INTELLIGENCE_STREAM</h3>
+          {data.signals.map((s, i) => (
+            <div key={i} style={{ marginBottom: '15px', borderLeft: '2px solid #0f4', paddingLeft: '10px' }}>
+              <small>[{s.source}] {s.date.split('T')[1].substring(0, 5)}</small>
+              <div style={{ fontSize: '14px' }}>{s.title}</div>
+            </div>
+          ))}
+        </section>
+      </main>
     </div>
   );
 }
