@@ -6,11 +6,12 @@ const translations = {
     forecast: "СТРАТЕГИЧЕСКИЙ ПРОГНОЗ",
     risk: "РИСК ЭСКАЛАЦИИ ПРИ СРЫВЕ ДИПЛОМАТИИ",
     metrics: "МЕТРИКИ",
-    disclaimer: "ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ: ДАННЫЕ АГРЕГИРОВАНЫ ИЗ ОТКРЫТЫХ OSINT ИСТОЧНИКОВ.",
+    disclaimer: "ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ: ДАННЫЕ АГРЕГИРОВАНЫ ИЗ ОТКРЫТЫХ OSINT ИСТОЧНИКОВ. НЕ ЯВЛЯЕТСЯ ДИРЕКТИВОЙ.",
     status: "СВЯЗЬ_OSINT: ОПТИМАЛЬНО",
     trend_up: "▲ РОСТ РИСКА",
     trend_stable: "▼ СТАБИЛЬНО",
-    loading: "ПОДКЛЮЧЕНИЕ К УЗЛАМ..."
+    diplomacy: "ДИПЛОМАТИЯ",
+    sentiment: "АНАЛИЗ_НАСТРОЕНИЙ"
   },
   en: {
     traffic: "IRAN INTERNET TRAFFIC",
@@ -21,13 +22,14 @@ const translations = {
     status: "OSINT_LINK: OPTIMAL",
     trend_up: "▲ RISK INCREASE",
     trend_stable: "▼ STABLE",
-    loading: "CONNECTING TO NODES..."
+    diplomacy: "DIPLOMACY",
+    sentiment: "SENTIMENT_ANALYSIS"
   }
 };
 
 const highlightCritical = (text) => {
   if (!text) return "";
-  const words = ["WARNING", "ПРЕДУПРЕЖДЕНИЕ", "БПЛА", "UAV", "strike", "удар", "B-52", "deployment"];
+  const words = ["WARNING", "ПРЕДУПРЕЖДЕНИЕ", "БПЛА", "UAV", "strike", "удар", "B-52", "deployment", "ВЫСОКИЙ", "усилена"];
   let formatted = String(text);
   words.forEach(word => {
     const reg = new RegExp(`(${word})`, "gi");
@@ -39,21 +41,20 @@ const highlightCritical = (text) => {
 const Gauge = ({ value, color, trendLabel, isUp }) => (
   <div style={{ textAlign: 'center' }}>
     <svg width="110" height="65" viewBox="0 0 100 60">
-      <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1a1a1a" strokeWidth="8" strokeLinecap="round" />
+      <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#111" strokeWidth="8" strokeLinecap="round" />
       <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={color} strokeWidth="8" 
             strokeDasharray={Math.PI * 40} 
             strokeDashoffset={(Math.PI * 40) - (value / 100) * (Math.PI * 40)} 
-            strokeLinecap="round" style={{ transition: 'stroke-dashoffset 2s' }} />
-      <text x="50" y="45" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="bold">{value}%</text>
+            strokeLinecap="round" style={{ transition: 'stroke-dashoffset 2s ease-out' }} />
+      <text x="50" y="45" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="bold" fontFamily="monospace">{value}%</text>
       <text x="50" y="20" textAnchor="middle" fill={isUp ? '#f33' : '#0f4'} fontSize="7" fontWeight="bold">{trendLabel}</text>
     </svg>
   </div>
 );
 
-export default function TerminalV15_4() {
+export default function TerminalV15_5() {
   const [lang, setLang] = useState('en');
   const [data, setData] = useState(null);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
     const savedLang = localStorage.getItem('osint_lang');
@@ -62,30 +63,25 @@ export default function TerminalV15_4() {
     const update = async () => {
       try {
         const res = await fetch('/api/data');
-        if (!res.ok) throw new Error();
         const json = await res.json();
         setData(json);
-      } catch (e) { 
-        console.error("Fetch failed");
-        setError(true);
-      }
+      } catch (e) { console.error("Update failed"); }
     };
     update();
     const timer = setInterval(update, 15000);
     return () => clearInterval(timer);
   }, []);
 
-  if (error) return <div style={s.loader}>SYSTEM_ERROR: DATA_FEED_OFFLINE</div>;
-  if (!data || !data.nodes) return <div style={s.loader}>INITIALIZING_DATA_NODES...</div>;
+  if (!data || !data.nodes) return <div style={s.loader}>INITIALIZING_OSINT_NODES...</div>;
 
-  const t = translations[lang] || translations['en'];
+  const t = translations[lang];
   const changeLang = (l) => { setLang(l); localStorage.setItem('osint_lang', l); };
 
   return (
     <div style={s.container}>
       <div style={s.topBar}>
         <div style={s.apiIndicator}>
-          <span style={{...s.dot, backgroundColor: data.apiHealth === 'optimal' ? '#0f4' : '#f00'}} />
+          <span style={s.dot} />
           <span style={s.apiText}>{t.status}</span>
         </div>
         <div style={s.langSwitcher}>
@@ -97,7 +93,7 @@ export default function TerminalV15_4() {
 
       <header style={s.header}>
         <h1 style={s.logo}>MADAD HAOREF</h1>
-        <div style={s.meta}>V15.4 // {new Date(data.timestamp).toLocaleTimeString()} UTC</div>
+        <div style={s.meta}>V15.5 // {new Date(data.timestamp).toLocaleTimeString()} UTC</div>
       </header>
 
       <main style={s.grid}>
@@ -111,11 +107,11 @@ export default function TerminalV15_4() {
                 isUp={node.trend === 'up'}
               />
               <div style={s.cardContent}>
-                <div style={s.nodeTitle}>{node.title?.[lang] || node.title?.en}</div>
+                <div style={s.nodeTitle}>{node.title?.[lang]}</div>
                 <div style={s.newsSection}>
                   {node.news?.map((n, i) => (
                     <div key={i} style={s.newsItem}>
-                      <span style={s.newsSrc}>[{n.src}]</span> {highlightCritical(n.txt?.[lang] || n.txt?.en)}
+                      <span style={s.newsSrc}>[{n.src}]</span> {highlightCritical(n.txt?.[lang])}
                     </div>
                   ))}
                 </div>
@@ -125,7 +121,8 @@ export default function TerminalV15_4() {
               <div style={s.metricsList}>
                 <span style={s.infoLabel}>{t.metrics}:</span>
                 <span style={s.metricItem}>{t.traffic}: <b style={{color:'#0f4'}}>{data.netConnectivity?.score}%</b></span>
-                <span style={s.metricItem}>SENTIMENT: <b style={{color:'#fff'}}>{node.value}%</b></span>
+                <span style={s.metricItem}>{t.diplomacy}: <b style={{color:'#888'}}>CRITICAL_STALEMATE</b></span>
+                <span style={s.metricItem}>{t.sentiment}: <b style={{color:'#fff'}}>{node.value}%</b></span>
               </div>
             </div>
           </div>
@@ -139,38 +136,39 @@ export default function TerminalV15_4() {
 
       <footer style={s.footer}>
         <p style={s.disclaimer}>{t.disclaimer}</p>
+        <div style={{fontSize: '8px', color: '#030', marginTop: '10px'}}>ADMIN_TERMINAL_ENCRYPTED_LINK</div>
       </footer>
     </div>
   );
 }
 
 const s = {
-  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', minHeight: '100vh', padding: '20px 15px', position: 'relative' },
+  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', minHeight: '100vh', padding: '25px 15px', position: 'relative' },
   topBar: { maxWidth: '650px', margin: '0 auto 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  langSwitcher: { display: 'flex', gap: '10px', fontSize: '12px', border: '1px solid #003300', padding: '5px 10px' },
+  langSwitcher: { display: 'flex', gap: '10px', fontSize: '12px', border: '1px solid #005500', padding: '5px 10px', background: '#050505' },
   langBtn: { background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'monospace', fontWeight: 'bold' },
-  apiIndicator: { display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #003300', padding: '5px 10px' },
-  apiText: { fontSize: '9px' },
-  dot: { width: '7px', height: '7px', borderRadius: '50%' },
-  header: { textAlign: 'center', marginBottom: '30px' },
-  logo: { fontSize: '24px', letterSpacing: '8px', fontWeight: 'bold' },
+  apiIndicator: { display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #005500', padding: '5px 10px' },
+  apiText: { fontSize: '9px', letterSpacing: '1px' },
+  dot: { width: '7px', height: '7px', borderRadius: '50%', background: '#0f4', boxShadow: '0 0 8px #0f4' },
+  header: { textAlign: 'center', marginBottom: '40px' },
+  logo: { fontSize: '26px', letterSpacing: '10px', fontWeight: 'bold' },
   meta: { fontSize: '10px', color: '#004400' },
   grid: { width: '100%', maxWidth: '650px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' },
   card: { border: '1px solid #005500', padding: '20px', background: '#050505' },
   cardLayout: { display: 'flex', gap: '20px', flexWrap: 'wrap' },
   cardContent: { flex: 1 },
-  nodeTitle: { fontSize: '12px', color: '#fff', fontWeight: 'bold', marginBottom: '10px', borderBottom: '1px solid #003300' },
-  newsSection: { display: 'flex', flexDirection: 'column', gap: '6px' },
-  newsItem: { fontSize: '11px', color: '#ccc' },
+  nodeTitle: { fontSize: '13px', color: '#fff', fontWeight: 'bold', marginBottom: '12px', borderBottom: '1px solid #005500', paddingBottom: '5px' },
+  newsSection: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  newsItem: { fontSize: '11px', color: '#ccc', lineHeight: '1.5' },
   newsSrc: { color: '#0f4', fontWeight: 'bold' },
-  infoBox: { borderTop: '1px solid #003300', marginTop: '15px', paddingTop: '10px' },
+  infoBox: { borderTop: '1px solid #005500', marginTop: '15px', paddingTop: '12px' },
   metricsList: { display: 'flex', gap: '15px', flexWrap: 'wrap' },
-  infoLabel: { fontSize: '9px', color: '#0f4' },
+  infoLabel: { fontSize: '9px', color: '#0f4', fontWeight: 'bold' },
   metricItem: { fontSize: '9px', color: '#444' },
-  forecastBox: { border: '1px solid #800', padding: '15px', background: '#0a0000', textAlign: 'center' },
-  forecastTitle: { fontSize: '12px', color: '#f33' },
+  forecastBox: { border: '1px solid #800', padding: '20px', background: '#0a0000', textAlign: 'center' },
+  forecastTitle: { fontSize: '13px', color: '#f33', marginBottom: '8px' },
   forecastText: { fontSize: '11px', color: '#fff' },
-  footer: { marginTop: '40px', textAlign: 'center', borderTop: '1px solid #003300', paddingTop: '10px' },
-  disclaimer: { fontSize: '8px', color: '#333' },
+  footer: { marginTop: '50px', textAlign: 'center', borderTop: '1px solid #003300', paddingTop: '20px' },
+  disclaimer: { fontSize: '8px', color: '#444', maxWidth: '500px', margin: '0 auto' },
   loader: { height: '100vh', background: '#000', color: '#0f4', display: 'flex', alignItems: 'center', justifyContent: 'center' }
 };
