@@ -8,10 +8,10 @@ const translations = {
     metrics: "МЕТРИКИ",
     disclaimer: "ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ: ДАННЫЕ АГРЕГИРОВАНЫ ИЗ ОТКРЫТЫХ OSINT ИСТОЧНИКОВ. НЕ ЯВЛЯЕТСЯ ДИРЕКТИВОЙ.",
     status: "СВЯЗЬ_OSINT: ОПТИМАЛЬНО",
-    trend_up: "▲ РОСТ РИСКА",
-    trend_stable: "▼ СТАБИЛЬНО",
-    diplomacy: "ДИПЛОМАТИЯ",
-    sentiment: "АНАЛИЗ_НАСТРОЕНИЙ"
+    trend_up: "▲ RISK INCREASE",
+    trend_stable: "▼ STABLE",
+    diplomacy: "DIPLOMACY",
+    sentiment: "OSINT_SENTIMENT"
   },
   en: {
     traffic: "IRAN INTERNET TRAFFIC",
@@ -23,13 +23,13 @@ const translations = {
     trend_up: "▲ RISK INCREASE",
     trend_stable: "▼ STABLE",
     diplomacy: "DIPLOMACY",
-    sentiment: "SENTIMENT_ANALYSIS"
+    sentiment: "OSINT_SENTIMENT"
   }
 };
 
 const highlightCritical = (text) => {
   if (!text) return "";
-  const words = ["WARNING", "ПРЕДУПРЕЖДЕНИЕ", "БПЛА", "UAV", "strike", "удар", "B-52", "deployment", "ВЫСОКИЙ", "усилена"];
+  const words = ["WARNING", "ПРЕДУПРЕЖДЕНИЕ", "БПЛА", "UAV", "strike", "удар", "B-52", "deployment", "ВЫСОКИЙ"];
   let formatted = String(text);
   words.forEach(word => {
     const reg = new RegExp(`(${word})`, "gi");
@@ -38,21 +38,28 @@ const highlightCritical = (text) => {
   return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
 };
 
+// Исправленный компонент Gauge с заниженными надписями
 const Gauge = ({ value, color, trendLabel, isUp }) => (
   <div style={{ textAlign: 'center' }}>
-    <svg width="110" height="65" viewBox="0 0 100 60">
-      <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#111" strokeWidth="8" strokeLinecap="round" />
-      <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={color} strokeWidth="8" 
+    <svg width="120" height="80" viewBox="0 0 100 70">
+      {/* Фоновая дуга */}
+      <path d="M 10 60 A 40 40 0 0 1 90 60" fill="none" stroke="#111" strokeWidth="8" strokeLinecap="round" />
+      {/* Активная дуга */}
+      <path d="M 10 60 A 40 40 0 0 1 90 60" fill="none" stroke={color} strokeWidth="8" 
             strokeDasharray={Math.PI * 40} 
             strokeDashoffset={(Math.PI * 40) - (value / 100) * (Math.PI * 40)} 
             strokeLinecap="round" style={{ transition: 'stroke-dashoffset 2s ease-out' }} />
-      <text x="50" y="45" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="bold" fontFamily="monospace">{value}%</text>
-      <text x="50" y="20" textAnchor="middle" fill={isUp ? '#f33' : '#0f4'} fontSize="7" fontWeight="bold">{trendLabel}</text>
+      {/* Процент (в центре) */}
+      <text x="50" y="55" textAnchor="middle" fill="#fff" fontSize="14" fontWeight="bold" fontFamily="monospace">{value}%</text>
+      {/* Текст тренда (опущен ниже, чтобы не сливаться с дугой) */}
+      <text x="50" y="28" textAnchor="middle" fill={isUp ? '#f33' : '#0f4'} fontSize="7" fontWeight="bold" fontFamily="monospace">
+        {trendLabel}
+      </text>
     </svg>
   </div>
 );
 
-export default function TerminalV15_5() {
+export default function TerminalV15_6() {
   const [lang, setLang] = useState('en');
   const [data, setData] = useState(null);
 
@@ -72,7 +79,7 @@ export default function TerminalV15_5() {
     return () => clearInterval(timer);
   }, []);
 
-  if (!data || !data.nodes) return <div style={s.loader}>INITIALIZING_OSINT_NODES...</div>;
+  if (!data || !data.nodes) return <div style={s.loader}>BOOTING_SYSTEM_CORES...</div>;
 
   const t = translations[lang];
   const changeLang = (l) => { setLang(l); localStorage.setItem('osint_lang', l); };
@@ -93,7 +100,7 @@ export default function TerminalV15_5() {
 
       <header style={s.header}>
         <h1 style={s.logo}>MADAD HAOREF</h1>
-        <div style={s.meta}>V15.5 // {new Date(data.timestamp).toLocaleTimeString()} UTC</div>
+        <div style={s.meta}>V15.6 // {new Date(data.timestamp).toLocaleTimeString()} UTC // SECURITY_NODE_ACTIVE</div>
       </header>
 
       <main style={s.grid}>
@@ -121,7 +128,7 @@ export default function TerminalV15_5() {
               <div style={s.metricsList}>
                 <span style={s.infoLabel}>{t.metrics}:</span>
                 <span style={s.metricItem}>{t.traffic}: <b style={{color:'#0f4'}}>{data.netConnectivity?.score}%</b></span>
-                <span style={s.metricItem}>{t.diplomacy}: <b style={{color:'#888'}}>CRITICAL_STALEMATE</b></span>
+                <span style={s.metricItem}>{t.diplomacy}: <b style={{color:'#888'}}>CRITICAL</b></span>
                 <span style={s.metricItem}>{t.sentiment}: <b style={{color:'#fff'}}>{node.value}%</b></span>
               </div>
             </div>
@@ -136,7 +143,7 @@ export default function TerminalV15_5() {
 
       <footer style={s.footer}>
         <p style={s.disclaimer}>{t.disclaimer}</p>
-        <div style={{fontSize: '8px', color: '#030', marginTop: '10px'}}>ADMIN_TERMINAL_ENCRYPTED_LINK</div>
+        <div style={{fontSize: '8px', color: '#003300', marginTop: '10px'}}>MADAD_HAOREF_CORE_v15.6</div>
       </footer>
     </div>
   );
@@ -155,7 +162,7 @@ const s = {
   meta: { fontSize: '10px', color: '#004400' },
   grid: { width: '100%', maxWidth: '650px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' },
   card: { border: '1px solid #005500', padding: '20px', background: '#050505' },
-  cardLayout: { display: 'flex', gap: '20px', flexWrap: 'wrap' },
+  cardLayout: { display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' },
   cardContent: { flex: 1 },
   nodeTitle: { fontSize: '13px', color: '#fff', fontWeight: 'bold', marginBottom: '12px', borderBottom: '1px solid #005500', paddingBottom: '5px' },
   newsSection: { display: 'flex', flexDirection: 'column', gap: '10px' },
