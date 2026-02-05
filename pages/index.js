@@ -3,87 +3,72 @@ import React, { useEffect, useState } from 'react';
 export default function MadadHaOref() {
   const [data, setData] = useState(null);
 
-  const fetchIntel = async () => {
-    try {
-      const res = await fetch('/api/data');
-      if (!res.ok) return;
-      const json = await res.json();
-      if (json && json.nodes) setData(json);
-    } catch (e) { console.warn("HOLDING_STATE"); }
-  };
+  const load = () => fetch('/api/data').then(r => r.json()).then(d => d.nodes && setData(d)).catch(e => {});
 
   useEffect(() => {
-    fetchIntel();
-    const timer = setInterval(fetchIntel, 15000);
-    return () => clearInterval(timer);
+    load();
+    const t = setInterval(load, 15000);
+    return () => clearInterval(t);
   }, []);
 
-  if (!data) return <div style={s.loader}>{">"} MADAD_HAOREF: СВЯЗЬ С УЗЛАМИ...</div>;
+  if (!data) return <div style={s.loader}>ПОДКЛЮЧЕНИЕ К OSINT-СЕТИ...</div>;
 
   return (
     <div style={s.container}>
       <header style={s.header}>
-        <h1 style={s.mainTitle}>MADAD HAOREF</h1>
-        <div style={s.statusLine}>
-          SYSTEM_STATUS: <span style={{color:'#0f4'}}>ENCRYPTED_LIVE</span> // 
-          SYNC: {new Date(data.timestamp).toLocaleTimeString()}
-        </div>
+        <div style={s.logo}>MADAD HAOREF // ТЕРМИНАЛ БЕЗОПАСНОСТИ</div>
+        <div style={s.time}>{new Date(data.timestamp).toLocaleString()}</div>
       </header>
 
-      <main style={s.main}>
+      <div style={s.main}>
         {data.nodes.map(node => (
           <div key={node.id} style={s.card}>
             <div style={s.cardTop}>
-              <div style={s.nodeTitle}>{node.title}</div>
-              <div style={{...s.value, color: node.value > 65 ? '#ff3e3e' : '#0f4'}}>{node.value}%</div>
-            </div>
-            
-            <div style={s.intelBox}>
-              <div style={s.metaLabel}>ТЕКУЩАЯ СВОДКА:</div>
-              <div style={s.intelText}>{node.intel}</div>
+              <span style={s.cardLabel}>{node.title}</span>
+              <span style={{...s.val, color: node.value > 60 ? '#f44' : '#0f4'}}>{node.value}%</span>
             </div>
 
-            <div style={s.methodBox}>
-              <div><span style={s.metaLabel}>ИСТОЧНИК:</span> {node.source}</div>
-              <div><span style={s.metaLabel}>МЕТОДОЛОГИЯ:</span> {node.method}</div>
+            <div style={s.newsList}>
+              {node.news.map((n, i) => (
+                <div key={i} style={s.newsItem}>
+                  <span style={s.newsSrc}>[{n.src}]</span> {n.txt}
+                </div>
+              ))}
             </div>
+
+            <div style={s.expertBox}>
+              <span style={{color: '#0f4'}}>МНЕНИЕ ЭКСПЕРТА:</span> {node.expert}
+            </div>
+            
+            <div style={s.method}>Источник: GDELT, CENTCOM, ISW. Метод: Весовой анализ событий.</div>
           </div>
         ))}
 
-        <div style={s.forecast}>
-          <div style={s.forecastTitle}>⚠️ СТРАТЕГИЧЕСКИЙ ПРОГНОЗ: 06.02.2026</div>
-          <div style={s.forecastText}>
-            ВЕКТОР: <strong style={{color:'#ff3e3e'}}>{data.prediction?.status}</strong>. <br/>
-            При срыве переговоров в Омане аналитическая модель прогнозирует рост индекса удара до <strong>{data.prediction?.impact}%</strong> в течение 48 часов.
-          </div>
+        <div style={s.disclaimer}>
+          <strong>ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ:</strong> Данные являются агрегацией открытых источников и вероятностной моделью. 
+          Madad HaOref не несет ответственности за действия, предпринятые на основе этой информации. 
+          Следите за официальными сообщениями Службы тыла (Pikud HaOref).
         </div>
-      </main>
-
-      <footer style={s.footer}>
-        <p><strong>ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ:</strong> ДАННЫЙ РЕСУРС ЯВЛЯЕТСЯ АГРЕГАТОРОМ ОТКРЫТЫХ ДАННЫХ (OSINT). ВСЕ РАСЧЕТЫ ЯВЛЯЮТСЯ ВЕРОЯТНОСТНЫМИ МОДЕЛЯМИ И НЕ ЯВЛЯЮТСЯ ОФИЦИАЛЬНЫМИ ДИРЕКТИВАМИ СЛУЖБ БЕЗОПАСНОСТИ. ПОЛЬЗОВАТЕЛЬ НЕСЕТ ПОЛНУЮ ОТВЕТСТВЕННОСТЬ ЗА ПРИНЯТЫЕ РЕШЕНИЯ.</p>
-        <p style={{marginTop:'10px', color:'#333'}}>MADAD HAOREF © 2026 // NO_STATIC_STUB_POLICY_ACTIVE</p>
-      </footer>
+      </div>
     </div>
   );
 }
 
 const s = {
-  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', padding: '20px', minHeight: '100vh', textTransform: 'uppercase' },
-  header: { borderBottom: '1px solid #1a1a1a', paddingBottom: '15px', marginBottom: '30px', textAlign: 'center' },
-  mainTitle: { fontSize: '28px', letterSpacing: '4px', margin: '0 0 5px 0' },
-  statusLine: { fontSize: '10px', color: '#444' },
-  main: { maxWidth: '700px', margin: '0 auto' },
-  card: { border: '1px solid #222', padding: '20px', background: '#050505', marginBottom: '20px' },
+  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', minHeight: '100vh', padding: '15px', textTransform: 'uppercase' },
+  header: { display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1a1a1a', paddingBottom: '10px', marginBottom: '20px' },
+  logo: { fontSize: '18px', fontWeight: 'bold' },
+  time: { fontSize: '10px', color: '#444' },
+  main: { maxWidth: '650px', margin: '0 auto' },
+  card: { border: '1px solid #222', padding: '15px', background: '#050505', marginBottom: '20px' },
   cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' },
-  nodeTitle: { fontSize: '14px', fontWeight: 'bold', color: '#888' },
-  value: { fontSize: '46px', fontWeight: 'bold' },
-  intelBox: { background: '#0a0a0a', padding: '12px', borderLeft: '2px solid #0f4', marginBottom: '15px' },
-  metaLabel: { fontSize: '10px', color: '#0f4', fontWeight: 'bold' },
-  intelText: { fontSize: '13px', color: '#eee', textTransform: 'none', marginTop: '5px', lineHeight: '1.4' },
-  methodBox: { fontSize: '9px', color: '#333', textTransform: 'none', display: 'flex', flexDirection: 'column', gap: '4px' },
-  forecast: { border: '1px solid #500', background: '#100', padding: '20px', marginTop: '30px' },
-  forecastTitle: { fontSize: '14px', color: '#ff3e3e', marginBottom: '10px' },
-  forecastText: { fontSize: '13px', textTransform: 'none', lineHeight: '1.5', color: '#ccc' },
-  footer: { marginTop: '50px', borderTop: '1px solid #111', paddingTop: '20px', fontSize: '9px', color: '#222', textAlign: 'justify', lineHeight: '1.4' },
-  loader: { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#0f4' }
+  cardLabel: { fontSize: '12px', color: '#888' },
+  val: { fontSize: '36px', fontWeight: 'bold' },
+  newsList: { borderLeft: '1px solid #1a1a1a', paddingLeft: '10px', marginBottom: '15px' },
+  newsItem: { fontSize: '11px', color: '#ccc', textTransform: 'none', marginBottom: '6px', lineHeight: '1.4' },
+  newsSrc: { color: '#0f4', marginRight: '5px', fontWeight: 'bold' },
+  expertBox: { background: '#0a0a0a', padding: '10px', fontSize: '11px', color: '#eee', textTransform: 'none', border: '1px solid #111' },
+  method: { fontSize: '8px', color: '#222', marginTop: '10px' },
+  disclaimer: { fontSize: '9px', color: '#333', textAlign: 'justify', borderTop: '1px dotted #222', paddingTop: '15px' },
+  loader: { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f4', background: '#000' }
 };
