@@ -42,14 +42,11 @@ export default function MadadHaOref() {
     return () => clearInterval(timer);
   }, []);
 
-  if (!data) return <div style={s.loader}>{">"} ПОДКЛЮЧЕНИЕ К УЗЛАМ OSINT...</div>;
+  if (!data) return <div style={s.loader}>{">"} ВЕРИФИКАЦИЯ ИСТОЧНИКОВ...</div>;
 
   const isNotamActive = data.nodes.some(node => node.news?.some(n => /NOTAM|Airspace|Closed|FAA/i.test(n.txt)));
-  const brentValue = parseFloat(data.market?.brent || 0);
-  const isBrentVolatile = brentValue > 78.5; 
 
   return (
-    // Динамический стиль контейнера: красная рамка при NOTAM
     <div style={{
       ...s.container,
       border: isNotamActive ? '2px solid #600' : '2px solid transparent',
@@ -59,7 +56,7 @@ export default function MadadHaOref() {
       <header style={s.header}>
         <h1 style={s.logo}>MADAD HAOREF</h1>
         <div style={s.statusBlock}>
-          <div style={s.meta}>V13.2 // {isNotamActive ? 'AIRSPACE_LOCK_DETECTED' : 'NORMAL_MONITORING'}</div>
+          <div style={s.meta}>V13.3 // {isNotamActive ? 'CRITICAL_MODE' : 'MONITORING_ACTIVE'}</div>
           <div style={s.statusText}>СТАТУС: <span style={{color: isNotamActive ? '#ff3e3e' : '#0f4'}}>
             {isNotamActive ? '⚠️ ALERT_LEVEL_RED' : 'LIVE_FEED'}
           </span></div>
@@ -90,7 +87,7 @@ export default function MadadHaOref() {
                   NOTAMs
                 </span>
                 <span style={s.metricItem}>DIPLOMACY</span>
-                <span style={s.metricItem}>ENERGY</span>
+                <span style={s.metricItem}>OSINT_SENTIMENT</span>
               </div>
             </div>
           </div>
@@ -100,17 +97,11 @@ export default function MadadHaOref() {
           <h3 style={s.forecastTitle}>⚠️ ПРОГНОЗ: {data.prediction?.date}</h3>
           <p style={s.forecastText}>ТРЕК: <strong style={{color:'#ff3e3e'}}>ФОКУС НА ДИПЛОМАТИИ</strong>. РИСК ПРИ СРЫВЕ: <strong>{data.prediction?.impact}%</strong>.</p>
         </div>
-
-        <div style={s.marketTicker}>
-          <div style={s.marketItem}>BRENT: <span style={{color: isBrentVolatile ? '#ffae00' : '#0f4', fontWeight: 'bold'}}>${data.market?.brent}</span></div>
-          <div style={s.marketItem}>USD/ILS: <span style={{color: '#fff'}}>{data.market?.usils}</span></div>
-          <div style={s.marketItem}>GOLD: <span style={{color: '#fff'}}>${data.market?.gold}</span></div>
-        </div>
       </main>
 
       <footer style={s.footer}>
-        <p style={s.disclaimer}><strong>ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ:</strong> OSINT-МОДЕЛЬ. НЕ ЯВЛЯЕТСЯ ДИРЕКТИВОЙ СЛУЖБ БЕЗОПАСНОСТИ.</p>
-        <div style={s.footerMeta}>MADAD HAOREF © 2026 // ADAPTIVE_MONITORING</div>
+        <p style={s.disclaimer}><strong>ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ:</strong> ДАННЫЙ РЕСУРС ЯВЛЯЕТСЯ АГРЕГАТОРОМ ОТКРЫТЫХ ДАННЫХ. ИНФОРМАЦИЯ НЕ ЯВЛЯЕТСЯ ОФИЦИАЛЬНОЙ ДИРЕКТИВОЙ СЛУЖБ БЕЗОПАСНОСТИ.</p>
+        <div style={s.footerMeta}>MADAD HAOREF © 2026 // DYNAMIC_THREAT_ENGINE</div>
       </footer>
 
       <style jsx global>{` @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } } `}</style>
@@ -142,8 +133,6 @@ const s = {
   forecastBox: { border: '1px solid #600', padding: '20px', background: '#0d0000', textAlign: 'center' },
   forecastTitle: { fontSize: '14px', color: '#ff3e3e', margin: '0 0 10px 0' },
   forecastText: { fontSize: '12px', color: '#fff' },
-  marketTicker: { display: 'flex', justifyContent: 'space-between', background: '#0a0a0a', padding: '12px', border: '1px solid #1a1a1a' },
-  marketItem: { fontSize: '10px', color: '#888' },
   footer: { marginTop: '50px', textAlign: 'center', maxWidth: '650px', borderTop: '1px solid #111', paddingTop: '20px' },
   disclaimer: { fontSize: '9px', color: '#666' },
   footerMeta: { fontSize: '9px', color: '#004400', marginTop: '10px' },
