@@ -3,72 +3,78 @@ import React, { useEffect, useState } from 'react';
 export default function MadadHaOref() {
   const [data, setData] = useState(null);
 
-  const load = () => fetch('/api/data').then(r => r.json()).then(d => d.nodes && setData(d)).catch(e => {});
+  const sync = async () => {
+    try {
+      const r = await fetch('/api/data');
+      const j = await r.json();
+      if (j && j.nodes) setData(j);
+    } catch (e) { console.warn("SYNC_HOLD"); }
+  };
 
-  useEffect(() => {
-    load();
-    const t = setInterval(load, 15000);
-    return () => clearInterval(t);
-  }, []);
+  useEffect(() => { sync(); const i = setInterval(sync, 15000); return () => clearInterval(i); }, []);
 
-  if (!data) return <div style={s.loader}>ПОДКЛЮЧЕНИЕ К OSINT-СЕТИ...</div>;
+  if (!data) return <div style={s.loader}>{">"} CONNECTING_TO_MADAD_HAOREF_CORE...</div>;
 
   return (
     <div style={s.container}>
       <header style={s.header}>
-        <div style={s.logo}>MADAD HAOREF // ТЕРМИНАЛ БЕЗОПАСНОСТИ</div>
-        <div style={s.time}>{new Date(data.timestamp).toLocaleString()}</div>
+        <h1 style={s.logo}>MADAD HAOREF // ТЕРМИНАЛ</h1>
+        <div style={s.time}>{new Date(data.timestamp).toLocaleString()} UTC</div>
       </header>
 
-      <div style={s.main}>
-        {data.nodes.map(node => (
+      <div style={s.grid}>
+        {data.nodes?.map(node => (
           <div key={node.id} style={s.card}>
             <div style={s.cardTop}>
-              <span style={s.cardLabel}>{node.title}</span>
+              <span style={s.label}>{node.title}</span>
               <span style={{...s.val, color: node.value > 60 ? '#f44' : '#0f4'}}>{node.value}%</span>
             </div>
 
-            <div style={s.newsList}>
-              {node.news.map((n, i) => (
+            <div style={s.newsWall}>
+              {node.news?.map((n, i) => (
                 <div key={i} style={s.newsItem}>
-                  <span style={s.newsSrc}>[{n.src}]</span> {n.txt}
+                  <span style={s.src}>[{n.src}]</span> {n.txt}
                 </div>
               ))}
             </div>
-
-            <div style={s.expertBox}>
-              <span style={{color: '#0f4'}}>МНЕНИЕ ЭКСПЕРТА:</span> {node.expert}
-            </div>
-            
-            <div style={s.method}>Источник: GDELT, CENTCOM, ISW. Метод: Весовой анализ событий.</div>
+            <div style={s.method}>Методология: {node.method}</div>
           </div>
         ))}
-
-        <div style={s.disclaimer}>
-          <strong>ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ:</strong> Данные являются агрегацией открытых источников и вероятностной моделью. 
-          Madad HaOref не несет ответственности за действия, предпринятые на основе этой информации. 
-          Следите за официальными сообщениями Службы тыла (Pikud HaOref).
-        </div>
       </div>
+
+      <div style={s.forecast}>
+        <h3 style={s.fTitle}>⚠️ СТРАТЕГИЧЕСКИЙ ПРОГНОЗ: {data.prediction?.date}</h3>
+        <p style={s.fText}>
+          ВЕКТОР: <strong>{data.prediction?.status}</strong>. <br/>
+          Срыв переговоров в Омане поднимет риск удара США до <strong>{data.prediction?.impact}%</strong>.
+        </p>
+      </div>
+
+      <footer style={s.footer}>
+        ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ: ДАННЫЕ ЯВЛЯЮТСЯ ВЕРОЯТНОСТНОЙ МОДЕЛЬЮ НА ОСНОВЕ ОТКРЫТЫХ ИСТОЧНИКОВ (OSINT). 
+        НЕ ЯВЛЯЕТСЯ ОФИЦИАЛЬНОЙ РЕКОМЕНДАЦИЕЙ. MADAD HAOREF © 2026.
+      </footer>
     </div>
   );
 }
 
 const s = {
-  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', minHeight: '100vh', padding: '15px', textTransform: 'uppercase' },
-  header: { display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1a1a1a', paddingBottom: '10px', marginBottom: '20px' },
-  logo: { fontSize: '18px', fontWeight: 'bold' },
+  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', minHeight: '100vh', padding: '20px', textTransform: 'uppercase' },
+  header: { display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1a1a1a', paddingBottom: '10px', marginBottom: '25px' },
+  logo: { fontSize: '20px', letterSpacing: '2px' },
   time: { fontSize: '10px', color: '#444' },
-  main: { maxWidth: '650px', margin: '0 auto' },
-  card: { border: '1px solid #222', padding: '15px', background: '#050505', marginBottom: '20px' },
-  cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' },
-  cardLabel: { fontSize: '12px', color: '#888' },
-  val: { fontSize: '36px', fontWeight: 'bold' },
-  newsList: { borderLeft: '1px solid #1a1a1a', paddingLeft: '10px', marginBottom: '15px' },
-  newsItem: { fontSize: '11px', color: '#ccc', textTransform: 'none', marginBottom: '6px', lineHeight: '1.4' },
-  newsSrc: { color: '#0f4', marginRight: '5px', fontWeight: 'bold' },
-  expertBox: { background: '#0a0a0a', padding: '10px', fontSize: '11px', color: '#eee', textTransform: 'none', border: '1px solid #111' },
-  method: { fontSize: '8px', color: '#222', marginTop: '10px' },
-  disclaimer: { fontSize: '9px', color: '#333', textAlign: 'justify', borderTop: '1px dotted #222', paddingTop: '15px' },
-  loader: { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f4', background: '#000' }
+  grid: { maxWidth: '700px', margin: '0 auto' },
+  card: { border: '1px solid #222', padding: '15px', background: '#050505', marginBottom: '15px' },
+  cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' },
+  label: { fontSize: '11px', color: '#888' },
+  val: { fontSize: '42px', fontWeight: 'bold' },
+  newsWall: { borderLeft: '2px solid #111', paddingLeft: '12px', marginBottom: '10px' },
+  newsItem: { fontSize: '11px', color: '#ddd', textTransform: 'none', marginBottom: '6px', lineHeight: '1.4' },
+  src: { color: '#0f4', fontWeight: 'bold' },
+  method: { fontSize: '8px', color: '#222', textTransform: 'none' },
+  forecast: { maxWidth: '700px', margin: '20px auto', border: '1px solid #500', padding: '15px', background: '#100' },
+  fTitle: { fontSize: '14px', color: '#f44', margin: '0 0 10px 0' },
+  fText: { fontSize: '12px', color: '#eee', textTransform: 'none' },
+  footer: { fontSize: '9px', color: '#222', textAlign: 'justify', maxWidth: '700px', margin: '40px auto 0', lineHeight: '1.3' },
+  loader: { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#0f4' }
 };
