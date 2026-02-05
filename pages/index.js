@@ -1,100 +1,141 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 const highlightCritical = (text) => {
-  const criticalWords = ["deployment", "approach", "incident", "confirmed", "strike", "alert"];
+  const words = ["deployment", "approach", "incident", "strike", "B-52", "NOTAM", "anomalous"];
   let formatted = text;
-  criticalWords.forEach(word => {
+  words.forEach(word => {
     const reg = new RegExp(`(${word})`, "gi");
     formatted = formatted.replace(reg, '<span style="color:#ff3e3e;font-weight:bold">$1</span>');
   });
   return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
 };
 
-const Gauge = ({ value, color }) => {
+const Gauge = ({ value, color, trend }) => {
   const circumference = Math.PI * 40;
-  const offset = circumference - (value / 100) * circumference;
+  const offset = circumference - (Math.min(Math.max(value, 0), 100) / 100) * circumference;
   return (
-    <svg width="100" height="60" viewBox="0 0 100 60">
-      <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#111" strokeWidth="8" />
-      <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={color} strokeWidth="8" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" />
-      <text x="50" y="45" textAnchor="middle" fill="#fff" fontSize="14" fontWeight="bold">{value}%</text>
-    </svg>
+    <div style={{ textAlign: 'center' }}>
+      <svg width="110" height="65" viewBox="0 0 100 60">
+        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1a1a1a" strokeWidth="8" strokeLinecap="round" />
+        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={color} strokeWidth="8" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1.5s' }} />
+        <text x="50" y="45" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="bold" fontFamily="monospace">{value}%</text>
+        <text x="50" y="20" textAnchor="middle" fill={trend === 'up' ? '#ff3e3e' : '#0f4'} fontSize="8" fontWeight="bold">{trend === 'up' ? '▲ TREND' : '▼ STABLE'}</text>
+      </svg>
+    </div>
   );
 };
 
-export default function Terminal() {
+export default function TerminalV13() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    const update = async () => {
-      const res = await fetch('/api/data');
-      const json = await res.json();
-      setData(json);
+    const fetchIntel = async () => {
+      try {
+        const res = await fetch('/api/data', { priority: 'high' });
+        const json = await res.json();
+        if (json?.nodes) setData(json);
+      } catch (e) { console.error("SYNC_ERROR"); }
     };
-    update();
-    const timer = setInterval(update, 30000); // Обновление раз в 30 сек для экономии ресурсов
+    fetchIntel();
+    const timer = setInterval(fetchIntel, 10000);
     return () => clearInterval(timer);
   }, []);
 
-  if (!data) return <div style={s.loader}>INITIALIZING_DATA_STREAM...</div>;
+  if (!data) return <div style={s.loader}>{">"} RESTORING_OSINT_SYSTRAY...</div>;
+
+  const isNotamActive = data.nodes?.some(node => node.news?.some(n => /NOTAM|Airspace|Closed/i.test(n.txt)));
+  const healthColor = data.apiHealth === 'optimal' ? '#0f4' : '#ffae00';
 
   return (
-    <div style={s.container}>
+    <div style={{
+      ...s.container,
+      border: isNotamActive ? '2px solid #600' : '2px solid transparent',
+      boxShadow: isNotamActive ? 'inset 0 0 60px rgba(120, 0, 0, 0.4)' : 'none',
+      transition: 'all 0.5s ease'
+    }}>
+      {/* ВОЗВРАЩЕН ИНДИКАТОР СВЯЗИ */}
+      <div style={s.apiIndicator}>
+        <span style={{...s.dot, backgroundColor: healthColor, boxShadow: `0 0 8px ${healthColor}`}} />
+        <span style={{color: healthColor, fontSize: '9px', marginLeft: '8px', letterSpacing: '1px'}}>OSINT_LINK</span>
+      </div>
+
       <header style={s.header}>
-        <div style={s.statusLine}>SYSTEM_STATUS: <span style={{color:'#0f4'}}>{data.api_status}</span> // {data.timestamp}</div>
         <h1 style={s.logo}>MADAD HAOREF</h1>
+        <div style={s.statusBlock}>
+          <div style={s.meta}>V13.8 // {isNotamActive ? 'ALERT_LEVEL_CRITICAL' : 'SCAN_MODE_ACTIVE'}</div>
+          <div style={s.time}>{new Date(data.timestamp).toLocaleTimeString()} UTC</div>
+        </div>
       </header>
 
-      <div style={s.grid}>
+      <main style={s.grid}>
         {data.nodes.map(node => (
-          <section key={node.id} style={s.card}>
-            <div style={s.cardTop}>
-              <Gauge value={node.value} color={node.value > 60 ? '#ff3e3e' : '#0f4'} />
-              <div style={s.titleBlock}>
-                <h2 style={s.nodeTitle}>{node.title}</h2>
-                <div style={s.method}>METHOD: {node.method}</div>
+          <div key={node.id} style={s.card}>
+            <div style={s.cardLayout}>
+              <Gauge value={node.value} color={parseFloat(node.value) > 60 ? '#ff3e3e' : '#0f4'} trend={node.trend} />
+              <div style={s.cardContent}>
+                <div style={s.nodeTitle}>{node.title}</div>
+                <div style={s.newsSection}>
+                  {node.news && node.news.length > 0 ? node.news.map((item, idx) => (
+                    <div key={idx} style={s.newsItem}><span style={s.newsSrc}>[{item.src}]</span> {highlightCritical(item.txt)}</div>
+                  )) : <div style={{color:'#222', fontSize:'10px'}}>NO_NEW_DATA</div>}
+                </div>
               </div>
             </div>
-            <div style={s.feed}>
-              {node.news.length > 0 ? node.news.map((n, i) => (
-                <div key={i} style={s.newsItem}>
-                  <span style={s.src}>[{n.src}]</span> {highlightCritical(n.txt)}
-                </div>
-              )) : <div style={s.noData}>NO_NEW_DATA_FOR_PERIOD</div>}
+            
+            <div style={s.infoBox}>
+              <div style={s.metricsList}>
+                <span style={s.infoLabel}>ДАТЧИКИ:</span>
+                {/* ВОЗВРАЩЕН ДАТЧИК ТРАФИКА */}
+                <span style={{...s.metricItem, color: data.netConnectivity?.status !== 'stable' ? '#ffae00' : '#888'}}>
+                   NET_TRAFFIC: {data.netConnectivity?.score}%
+                </span>
+                <span style={{...s.metricItem, color: isNotamActive ? '#fff' : '#444'}}>
+                  <span style={{...s.dot, backgroundColor: isNotamActive ? '#f00' : '#111', animation: isNotamActive ? 'blink 1s infinite' : 'none'}} /> NOTAMs
+                </span>
+              </div>
             </div>
-          </section>
+          </div>
         ))}
 
-        <div style={s.forecast}>
-          <div style={s.forecastTitle}>TARGET_DATE: {data.prediction.date}</div>
-          <div style={s.forecastVal}>ESCALATION_PROBABILITY: {data.prediction.impact}%</div>
+        <div style={s.forecastBox}>
+          <h3 style={s.forecastTitle}>⚠️ ПРОГНОЗ: {data.prediction?.date}</h3>
+          <p style={s.forecastText}>STATUS: <strong>DIPLOMATIC_STALEMATE</strong>. ESCALATION_RISK: <strong>{data.prediction?.impact}%</strong>.</p>
         </div>
-      </div>
-      
+      </main>
+
       <footer style={s.footer}>
-        INTERNAL_USE_ONLY // OSINT_AGREGRATOR_V13.7
+        INTERNAL_TERMINAL // OSINT_AGREGRATOR_2026
       </footer>
+
+      <style jsx global>{` @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } } `}</style>
     </div>
   );
 }
 
 const s = {
-  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', minHeight: '100vh', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  header: { textAlign: 'center', marginBottom: '40px', width: '100%', maxWidth: '650px' },
-  statusLine: { fontSize: '10px', color: '#004400', marginBottom: '10px', textAlign: 'left', borderBottom: '1px solid #111' },
-  logo: { fontSize: '24px', letterSpacing: '6px', margin: 0 },
+  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', minHeight: '100vh', padding: '25px 15px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box', position: 'relative' },
+  apiIndicator: { position: 'absolute', top: '20px', right: '20px', display: 'flex', alignItems: 'center', padding: '5px 10px', border: '1px solid #111' },
+  header: { textAlign: 'center', marginBottom: '30px', maxWidth: '650px', width: '100%' },
+  logo: { fontSize: '26px', letterSpacing: '5px', fontWeight: 'bold' },
+  statusBlock: { marginTop: '10px' },
+  meta: { fontSize: '10px', color: '#008800' },
+  time: { fontSize: '10px', color: '#004400' },
   grid: { width: '100%', maxWidth: '650px', display: 'flex', flexDirection: 'column', gap: '20px' },
-  card: { border: '1px solid #003300', background: '#050505', padding: '15px' },
-  cardTop: { display: 'flex', gap: '20px', alignItems: 'center', marginBottom: '15px' },
-  nodeTitle: { fontSize: '14px', color: '#fff', margin: 0 },
-  method: { fontSize: '9px', color: '#006600', marginTop: '4px' },
-  feed: { display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #111', paddingTop: '10px' },
+  card: { border: '1px solid #003300', padding: '20px', background: '#050505' },
+  cardLayout: { display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' },
+  cardContent: { flex: '1 1 300px' },
+  nodeTitle: { fontSize: '13px', color: '#fff', fontWeight: 'bold', marginBottom: '10px', borderBottom: '1px solid #111', paddingBottom: '5px' },
+  newsSection: { display: 'flex', flexDirection: 'column', gap: '8px' },
   newsItem: { fontSize: '12px', color: '#ccc', lineHeight: '1.4' },
-  src: { color: '#0f4', fontWeight: 'bold', marginRight: '5px' },
-  noData: { color: '#222', fontSize: '10px', fontStyle: 'italic' },
-  forecast: { border: '1px solid #600', padding: '15px', background: '#0a0000', textAlign: 'center' },
-  forecastTitle: { fontSize: '12px', color: '#ff3e3e' },
-  forecastVal: { fontSize: '14px', fontWeight: 'bold', marginTop: '5px' },
-  footer: { marginTop: '40px', fontSize: '9px', color: '#111' },
+  newsSrc: { color: '#0f4', fontWeight: 'bold' },
+  infoBox: { borderTop: '1px solid #111', paddingTop: '15px', marginTop: '15px' },
+  metricsList: { display: 'flex', gap: '15px', alignItems: 'center' },
+  infoLabel: { color: '#0f4', fontSize: '9px', fontWeight: 'bold' },
+  metricItem: { fontSize: '9px', display: 'flex', alignItems: 'center', gap: '6px' },
+  dot: { width: '8px', height: '8px', borderRadius: '50%' },
+  forecastBox: { border: '1px solid #600', padding: '20px', background: '#0d0000', textAlign: 'center' },
+  forecastTitle: { fontSize: '14px', color: '#ff3e3e', marginBottom: '10px' },
+  forecastText: { fontSize: '11px', color: '#eee' },
+  footer: { marginTop: '50px', fontSize: '8px', color: '#111' },
   loader: { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#0f4' }
 };
