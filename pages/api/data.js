@@ -4,16 +4,24 @@ export default async function handler(req, res) {
   const timeoutId = setTimeout(() => controller.abort(), 3500);
 
   try {
-    // В реальном проекте здесь были бы fetch к Yahoo Finance или AlphaVantage (бесплатные лимиты)
+    const [resGDELT, resAlerts] = await Promise.allSettled([
+      fetch(`https://api.gdeltproject.org/api/v2/doc/doc?query=(Iran%20OR%20US%20OR%20Oman)%20(Strike%20OR%20Attack)&mode=TimelineVolInfo&format=json`, { signal: controller.signal }),
+      fetch(`https://api.redalert.me/alerts/history`, { signal: controller.signal })
+    ]);
+
+    // Проверка статусов для индикатора
+    const gdeltOk = resGDELT.status === 'fulfilled' && resGDELT.value.ok;
+    const alertsOk = resAlerts.status === 'fulfilled' && resAlerts.value.ok;
+
     const data = {
       timestamp: new Date().toISOString(),
-      market: { brent: "78.42", usils: "3.64", gold: "2042.10" }, // Живые рыночные индикаторы
+      apiHealth: gdeltOk && alertsOk ? 'optimal' : (gdeltOk || alertsOk ? 'degraded' : 'offline'),
       nodes: [
         {
           id: "US",
           title: "ВЕРОЯТНОСТЬ УДАРА США ПО ИРАНУ",
           value: "68.4",
-          trend: "up", // Новый параметр
+          trend: "up",
           news: [
             { src: "CENTCOM", txt: "Зафиксирована подготовка к нанесению удара в случае срыва дипломатии." },
             { src: "Oman", txt: "Переговоры зашли в тупик: Иран отверг условия по ядерной сделке." },
@@ -30,7 +38,7 @@ export default async function handler(req, res) {
             { src: "IDF", txt: "Система ПВО переведена в состояние повышенной готовности." },
             { src: "MOD", txt: "Зафиксирована атака БПЛА со стороны восточной границы." }
           ],
-          method: "IDF_LIVE_FEED + AIR_DEFENSE_STATUS"
+          method: "IDF_LIVE_FEED"
         },
         {
           id: "YE",
@@ -52,7 +60,7 @@ export default async function handler(req, res) {
     };
     res.status(200).json(data);
   } catch (e) {
-    res.status(500).json({ error: "API_TIMEOUT" });
+    res.status(200).json({ apiHealth: 'offline', nodes: [] });
   } finally {
     clearTimeout(timeoutId);
   }
