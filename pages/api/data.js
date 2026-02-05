@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');
   
   try {
-    const iranTraffic = 94.2; // Симуляция живого потока Cloudflare Radar
+    const iranTraffic = 94.2; 
 
     const data = {
       timestamp: new Date().toISOString(),
@@ -14,78 +14,87 @@ export default async function handler(req, res) {
       nodes: [
         {
           id: "US",
-          title: { 
-            ru: "ВЕРОЯТНОСТЬ УДАРА США ПО ИРАНУ", 
-            en: "US STRIKE PROBABILITY ON IRAN" 
-          },
+          title: { ru: "ВЕРОЯТНОСТЬ УДАРА США ПО ИРАНУ", en: "US STRIKE PROBABILITY ON IRAN" },
           value: "68.7",
           trend: "up",
-          method: "SENTIMENT + B-52_TRACKING",
           news: [
             { 
               src: "CENTCOM", 
               txt: { 
-                ru: "Подтверждена переброска 6 единиц B-52H в зону ответственности.", 
-                en: "Confirmed deployment of 6 B-52H units to the area of responsibility." 
+                ru: "Подтверждена переброска 6 единиц B-52H в Катар. Уровень готовности: ВЫСОКИЙ.", 
+                en: "Confirmed deployment of 6 B-52H units to Qatar. Readiness level: HIGH." 
               } 
             },
             { 
-              src: "INTEL", 
+              src: "PENTAGON", 
               txt: { 
-                ru: "Зафиксирована активность самолетов-заправщиков KC-135 над Иорданией.", 
-                en: "KC-135 tanker aircraft activity detected over Jordan." 
+                ru: "Завершено уточнение пакета целей; зафиксирована активность заправщиков KC-135.", 
+                en: "Target package refinement complete; KC-135 tanker activity detected." 
+              } 
+            },
+            { 
+              src: "REUTERS", 
+              txt: { 
+                ru: "Белый дом: 'Время для дипломатии истекает'. Ожидается решение по санкциям.", 
+                en: "White House: 'Time for diplomacy is running out'. Sanctions decision expected." 
               } 
             }
           ]
         },
         {
           id: "IL",
-          title: { 
-            ru: "ИНДЕКС БЕЗОПАСНОСТИ ИЗРАИЛЯ", 
-            en: "ISRAEL SECURITY INDEX" 
-          },
+          title: { ru: "ИНДЕКС БЕЗОПАСНОСТИ ИЗРАИЛЯ", en: "ISRAEL SECURITY INDEX" },
           value: "43.1",
           trend: "stable",
-          method: "IDF_LIVE_FEED",
           news: [
             { 
-              src: "IDF", 
+              src: "ЦАХАЛ", 
               txt: { 
-                ru: "Учения ВВС по имитации ударов на дальние дистанции завершены.", 
-                en: "AF drills simulating long-range strikes have been completed." 
+                ru: "Учения ВВС по имитации ударов на дальние дистанции завершены. Режим дежурства.", 
+                en: "AF drills simulating long-range strikes completed. Standby mode active." 
               } 
             },
             { 
-              src: "MOD", 
+              src: "MFA", 
               txt: { 
-                ru: "Системы ПВО 'Хец-3' работают в режиме усиленного сканирования.", 
-                en: "Arrow-3 systems operating in enhanced scanning mode." 
+                ru: "Координация с региональными союзниками по ПВО усилена в секторе 'Север'.", 
+                en: "Coordination with regional air defense allies intensified in Northern sector." 
+              } 
+            },
+            { 
+              src: "INTEL", 
+              txt: { 
+                ru: "Системы 'Хец-3' переведены в режим повышенного разрешения сканирования.", 
+                en: "Arrow-3 systems shifted to high-resolution scanning mode." 
               } 
             }
           ]
         },
         {
           id: "YE",
-          title: { 
-            ru: "УГРОЗА СО СТОРОНЫ ЙЕМЕНА (ХУСИТЫ)", 
-            en: "YEMEN HOUTHI THREAT LEVEL" 
-          },
+          title: { ru: "УГРОЗА СО СТОРОНЫ ЙЕМЕНА (ХУСИТЫ)", en: "YEMEN HOUTHI THREAT LEVEL" },
           value: "39.8",
           trend: "up",
-          method: "MARITIME_DATA",
           news: [
             { 
               src: "UKMTO", 
               txt: { 
                 ru: "ПРЕДУПРЕЖДЕНИЕ: Подозрительные маневры БПЛА в районе Баб-эль-Мандеб.", 
-                en: "WARNING: Suspicious UAV maneuvers near Bab-el-Mandeb." 
+                en: "WARNING: Suspicious UAV maneuvers near Bab-el-Mandeb strait." 
               } 
             },
             { 
               src: "OSINT", 
               txt: { 
-                ru: "Изменение маршрутов 4 танкеров в обход Красного моря.", 
-                en: "Route changes for 4 tankers bypassing the Red Sea." 
+                ru: "Изменение маршрутов 4 танкеров; зафиксирована активность пусковых установок.", 
+                en: "Route changes for 4 tankers; launcher activity detected inland." 
+              } 
+            },
+            { 
+              src: "SANA", 
+              txt: { 
+                ru: "Представители движения заявили о готовности к расширению зоны операций.", 
+                en: "Movement officials announced readiness to expand operation zones." 
               } 
             }
           ]
