@@ -19,7 +19,7 @@ const Gauge = ({ value, color, trend }) => {
         <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1a1a1a" strokeWidth="8" strokeLinecap="round" />
         <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={color} strokeWidth="8" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1.5s' }} />
         <text x="50" y="45" textAnchor="middle" fill="#fff" fontSize="14" fontWeight="bold" fontFamily="monospace">{value}%</text>
-        <text x="50" y="22" textAnchor="middle" fill={trend === 'up' ? '#ff3e3e' : '#0f4'} fontSize="8" fontWeight="bold" letterSpacing="1px">{trend === 'up' ? '▲ TREND' : '▼ STABLE'}</text>
+        <text x="50" y="22" textAnchor="middle" fill={trend === 'up' ? '#ff3e3e' : '#0f4'} fontSize="8" fontWeight="bold">{trend === 'up' ? '▲ TREND' : '▼ STABLE'}</text>
       </svg>
     </div>
   );
@@ -42,21 +42,27 @@ export default function MadadHaOref() {
     return () => clearInterval(timer);
   }, []);
 
-  if (!data) return <div style={s.loader}>{">"} СИНХРОНИЗАЦИЯ СЕТИ...</div>;
+  if (!data) return <div style={s.loader}>{">"} ПОДКЛЮЧЕНИЕ К УЗЛАМ OSINT...</div>;
 
   const isNotamActive = data.nodes.some(node => node.news?.some(n => /NOTAM|Airspace|Closed|FAA/i.test(n.txt)));
-  
-  // Логика аларма BRENT (скачок > 2.5% от базовой цены 76.5)
   const brentValue = parseFloat(data.market?.brent || 0);
   const isBrentVolatile = brentValue > 78.5; 
 
   return (
-    <div style={s.container}>
+    // Динамический стиль контейнера: красная рамка при NOTAM
+    <div style={{
+      ...s.container,
+      border: isNotamActive ? '2px solid #600' : '2px solid transparent',
+      boxShadow: isNotamActive ? 'inset 0 0 50px rgba(100, 0, 0, 0.3)' : 'none',
+      transition: 'all 0.5s ease'
+    }}>
       <header style={s.header}>
         <h1 style={s.logo}>MADAD HAOREF</h1>
         <div style={s.statusBlock}>
-          <div style={s.meta}>SECURITY_TERMINAL_V13.1 // 2026_ACTIVE</div>
-          <div style={s.statusText}>СТАТУС: <span style={{color: '#0f4', animation: 'blink 2s infinite'}}>LIVE_STREAMING</span></div>
+          <div style={s.meta}>V13.2 // {isNotamActive ? 'AIRSPACE_LOCK_DETECTED' : 'NORMAL_MONITORING'}</div>
+          <div style={s.statusText}>СТАТУС: <span style={{color: isNotamActive ? '#ff3e3e' : '#0f4'}}>
+            {isNotamActive ? '⚠️ ALERT_LEVEL_RED' : 'LIVE_FEED'}
+          </span></div>
           <div style={s.time}>{new Date(data.timestamp).toLocaleTimeString()} UTC</div>
         </div>
       </header>
@@ -79,11 +85,12 @@ export default function MadadHaOref() {
             <div style={s.infoBox}>
               <div style={s.metricsList}>
                 <span style={s.infoLabel}>МЕТРИКИ:</span>
-                <span style={{...s.metricItem, color: isNotamActive ? '#fff' : '#666'}}>
-                  <span style={{...s.dot, backgroundColor: isNotamActive ? '#ff0000' : '#003300', animation: isNotamActive ? 'blink 1s infinite' : 'none'}} /> NOTAMs
+                <span style={{...s.metricItem, color: isNotamActive ? '#fff' : '#888'}}>
+                  <span style={{...s.dot, backgroundColor: isNotamActive ? '#ff0000' : '#003300', animation: isNotamActive ? 'blink 1s infinite' : 'none'}} /> 
+                  NOTAMs
                 </span>
                 <span style={s.metricItem}>DIPLOMACY</span>
-                <span style={s.metricItem}>LOGISTICS</span>
+                <span style={s.metricItem}>ENERGY</span>
               </div>
             </div>
           </div>
@@ -94,13 +101,8 @@ export default function MadadHaOref() {
           <p style={s.forecastText}>ТРЕК: <strong style={{color:'#ff3e3e'}}>ФОКУС НА ДИПЛОМАТИИ</strong>. РИСК ПРИ СРЫВЕ: <strong>{data.prediction?.impact}%</strong>.</p>
         </div>
 
-        {/* ПЕРЕНЕСЕННЫЙ БЛОК РЫНКОВ С АВТО-ЦВЕТОМ */}
         <div style={s.marketTicker}>
-          <div style={s.marketItem}>
-            BRENT: <span style={{color: isBrentVolatile ? '#ffae00' : '#0f4', fontWeight: 'bold'}}>
-              ${data.market?.brent} {isBrentVolatile ? '(! VOLATILE)' : ''}
-            </span>
-          </div>
+          <div style={s.marketItem}>BRENT: <span style={{color: isBrentVolatile ? '#ffae00' : '#0f4', fontWeight: 'bold'}}>${data.market?.brent}</span></div>
           <div style={s.marketItem}>USD/ILS: <span style={{color: '#fff'}}>{data.market?.usils}</span></div>
           <div style={s.marketItem}>GOLD: <span style={{color: '#fff'}}>${data.market?.gold}</span></div>
         </div>
@@ -117,14 +119,13 @@ export default function MadadHaOref() {
 }
 
 const s = {
-  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', minHeight: '100vh', padding: '25px 15px', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  container: { background: '#000', color: '#0f4', fontFamily: 'monospace', minHeight: '100vh', padding: '25px 15px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box' },
   header: { textAlign: 'center', marginBottom: '30px', maxWidth: '650px', width: '100%' },
-  logo: { fontSize: 'clamp(24px, 8vw, 36px)', letterSpacing: '5px', fontWeight: 'bold', margin: '0 0 5px 0' },
-  statusBlock: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' },
+  logo: { fontSize: 'clamp(24px, 8vw, 36px)', letterSpacing: '5px', fontWeight: 'bold' },
+  statusBlock: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginTop: '10px' },
   meta: { fontSize: '10px', color: '#00aa00' },
   statusText: { fontSize: '11px', fontWeight: 'bold' },
   time: { fontSize: '10px', color: '#006600' },
-  
   grid: { width: '100%', maxWidth: '650px', display: 'flex', flexDirection: 'column', gap: '20px' },
   card: { border: '1px solid #004400', padding: '20px', background: '#050505' },
   cardLayout: { display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' },
@@ -133,29 +134,18 @@ const s = {
   newsSection: { display: 'flex', flexDirection: 'column', gap: '8px' },
   newsItem: { fontSize: '12px', color: '#eee', textTransform: 'none', lineHeight: '1.4' },
   newsSrc: { color: '#0f4', fontWeight: 'bold' },
-  
   infoBox: { borderTop: '1px solid #1a1a1a', paddingTop: '15px', marginTop: '15px' },
-  metricsList: { display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'center' },
+  metricsList: { display: 'flex', gap: '15px', alignItems: 'center' },
   infoLabel: { color: '#0f4', fontSize: '10px', fontWeight: 'bold' },
-  metricItem: { fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', color: '#888' }, // Текст стал светлее
+  metricItem: { fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px' },
   dot: { width: '8px', height: '8px', borderRadius: '50%' },
-  
   forecastBox: { border: '1px solid #600', padding: '20px', background: '#0d0000', textAlign: 'center' },
-  forecastTitle: { fontSize: '14px', color: '#ff3e3e', margin: '0 0 10px 0', letterSpacing: '1px' },
-  forecastText: { fontSize: '12px', color: '#fff', lineHeight: '1.5' },
-  
-  marketTicker: { 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    background: '#0a0a0a', 
-    padding: '12px', 
-    border: '1px solid #1a1a1a',
-    borderRadius: '2px'
-  },
-  marketItem: { fontSize: '10px', color: '#777' }, // Повышен контраст с #444 до #777
-  
+  forecastTitle: { fontSize: '14px', color: '#ff3e3e', margin: '0 0 10px 0' },
+  forecastText: { fontSize: '12px', color: '#fff' },
+  marketTicker: { display: 'flex', justifyContent: 'space-between', background: '#0a0a0a', padding: '12px', border: '1px solid #1a1a1a' },
+  marketItem: { fontSize: '10px', color: '#888' },
   footer: { marginTop: '50px', textAlign: 'center', maxWidth: '650px', borderTop: '1px solid #111', paddingTop: '20px' },
-  disclaimer: { fontSize: '9px', color: '#555', lineHeight: '1.4' }, // Дисклеймер теперь читаем
+  disclaimer: { fontSize: '9px', color: '#666' },
   footerMeta: { fontSize: '9px', color: '#004400', marginTop: '10px' },
   loader: { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#0f4' }
 };
