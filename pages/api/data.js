@@ -1,74 +1,70 @@
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');
 
-  // База оперативных сводок для динамической ротации
-  const newsPool = {
-    US: [
-      { ru: "Подтверждена переброска B-52H на базу Эль-Удейд.", en: "B-52H deployment to Al-Udeid confirmed." },
-      { ru: "Зафиксирована активность заправщиков KC-135 над Иорданией.", en: "KC-135 tanker activity detected over Jordan." },
-      { ru: "Пентагон: Уровень готовности сил в регионе повышен до DEFCON 3.", en: "Pentagon: Regional force readiness raised to DEFCON 3." },
-      { ru: "Авианосная группа CVN-68 вошла в Аравийское море.", en: "Carrier Strike Group CVN-68 entered the Arabian Sea." },
-      { ru: "Перехват SIGINT: Координация штабов в Катаре усилена.", en: "SIGINT Intercept: Qatar HQ coordination intensified." }
-    ],
-    IL: [
-      { ru: "Системы 'Хец-3' переведены в режим повышенного разрешения.", en: "Arrow-3 systems shifted to high-resolution mode." },
-      { ru: "ВВС завершили имитацию ударов на дальние дистанции.", en: "Air Force completed long-range strike simulations." },
-      { ru: "Развертывание дополнительных батарей 'Железный купол' на севере.", en: "Additional Iron Dome batteries deployed in the north." },
-      { ru: "Моссад сообщает о перемещении мобильных пусковых установок в Иране.", en: "Mossad reports movement of mobile launchers in Iran." },
-      { ru: "Кибер-командование ЦАХАЛ зафиксировало попытки взлома сетей связи.", en: "IDF Cyber Command detected breach attempts on comm networks." }
-    ],
-    YE: [
-      { ru: "ПРЕДУПРЕЖДЕНИЕ: Подозрительные маневры БПЛА в районе Баб-эль-Мандеб.", en: "WARNING: Suspicious UAV maneuvers near Bab-el-Mandeb." },
-      { ru: "Изменение маршрутов танкеров в обход Красного моря.", en: "Tanker route changes bypassing the Red Sea." },
-      { ru: "Зафиксирована активность РЛС на побережье Йемена.", en: "Coastal radar activity detected in Yemen." },
-      { ru: "Запуск разведывательного дрона-камикадзе из района Ходейда.", en: "Kamikaze drone launch detected from Hodeidah area." },
-      { ru: "Британская разведка: Хуситы получили новые противокорабельные ракеты.", en: "UK Intel: Houthis received new anti-ship missiles." }
-    ]
+  const fetchRSS = async (url) => {
+    try {
+      const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
+      const data = await response.json();
+      return data.items || [];
+    } catch (e) { return []; }
   };
 
-  const getRandom = (arr, n) => arr.sort(() => 0.5 - Math.random()).slice(0, n);
-
-  // Динамические показатели с небольшой волатильностью
-  const drift = () => (Math.random() * 2 - 1).toFixed(1);
-
   try {
+    // Тянем данные из мировых источников в реальном времени
+    const [bbc, aljazeera] = await Promise.all([
+      fetchRSS('http://feeds.bbci.co.uk/news/world/middle_east/rss.xml'),
+      fetchRSS('https://www.aljazeera.com/xml/rss/all.xml')
+    ]);
+
+    const allNews = [...bbc, ...aljazeera];
+
+    // Фильтрация по ключевым словам для каждого узла
+    const filter = (keywords) => allNews
+      .filter(item => keywords.some(k => 
+        item.title.toLowerCase().includes(k.toLowerCase()) || 
+        item.content.toLowerCase().includes(k.toLowerCase())
+      ))
+      .slice(0, 3)
+      .map(item => ({
+        src: item.author || "LIVE_FEED",
+        txt: item.title // Только оригинал (English)
+      }));
+
     const data = {
       timestamp: new Date().toISOString(),
       apiHealth: 'optimal',
-      netConnectivity: {
-        score: (94.2 + parseFloat(drift())).toFixed(1),
-        status: 'stable'
-      },
+      netConnectivity: { score: (93 + Math.random() * 2).toFixed(1), status: 'stable' },
       nodes: [
         {
           id: "US",
-          title: { ru: "ВЕРОЯТНОСТЬ УДАРА США", en: "US STRIKE PROBABILITY" },
-          value: (68.7 + parseFloat(drift())).toFixed(1),
-          trend: Math.random() > 0.5 ? "up" : "stable",
-          news: getRandom(newsPool.US, 3).map(n => ({ src: "INTEL", txt: n }))
+          title: { ru: "США: СТРАТЕГИЧЕСКИЙ МОНИТОРИНГ", en: "US STRATEGIC MONITORING" },
+          value: (65 + Math.random() * 5).toFixed(1),
+          trend: "up",
+          news: filter(['US', 'Pentagon', 'Biden', 'Centcom', 'Navy', 'Air Force', 'B-52'])
         },
         {
           id: "IL",
-          title: { ru: "ИНДЕКС БЕЗОПАСНОСТИ ИЗРАИЛЯ", en: "ISRAEL SECURITY INDEX" },
-          value: (43.1 + parseFloat(drift())).toFixed(1),
-          trend: Math.random() > 0.7 ? "up" : "stable",
-          news: getRandom(newsPool.IL, 3).map(n => ({ src: "IDF", txt: n }))
+          title: { ru: "ИЗРАИЛЬ: ИНДЕКС БЕЗОПАСНОСТИ", en: "ISRAEL SECURITY INDEX" },
+          value: (40 + Math.random() * 5).toFixed(1),
+          trend: "stable",
+          news: filter(['Israel', 'IDF', 'Gaza', 'Lebanon', 'Hezbollah', 'Mossad', 'Tel Aviv'])
         },
         {
           id: "YE",
-          title: { ru: "УГРОЗА ЙЕМЕНА (ХУСИТЫ)", en: "YEMEN HOUTHI THREAT" },
-          value: (39.8 + parseFloat(drift())).toFixed(1),
-          trend: Math.random() > 0.4 ? "up" : "stable",
-          news: getRandom(newsPool.YE, 3).map(n => ({ src: "MARITIME", txt: n }))
+          title: { ru: "ИРАН / ЙЕМЕН: АНАЛИЗ УГРОЗ", en: "IRAN / YEMEN THREAT ANALYSIS" },
+          value: (35 + Math.random() * 10).toFixed(1),
+          trend: "up",
+          news: filter(['Iran', 'Tehran', 'Houthi', 'Yemen', 'Red Sea', 'Drone', 'Missile'])
         }
       ],
       prediction: {
-        date: "06.02.2026",
-        impact: (74.5 + parseFloat(drift())).toFixed(1)
+        date: new Date().toLocaleDateString(),
+        impact: (70 + Math.random() * 10).toFixed(1)
       }
     };
+
     res.status(200).json(data);
   } catch (e) {
-    res.status(500).json({ apiHealth: 'offline' });
+    res.status(500).json({ status: 'error' });
   }
 }
