@@ -10,90 +10,74 @@ export default async function handler(req, res) {
   };
 
   try {
-    // Подключение к аналитическим узлам ISW, FDD и экспертным фидам
-    const [isw, fdd, crisis] = await Promise.all([
-      fetchRSS('https://www.understandingwar.org/rss.xml'),
+    // Фокусируемся на источниках, дающих оперативную военную аналитику
+    const [fdd, lwj] = await Promise.all([
       fetchRSS('https://www.fdd.org/analysis/feed/'),
-      fetchRSS('https://www.crisisgroup.org/rss.xml')
+      fetchRSS('https://www.longwarjournal.org/feed')
     ]);
 
-    const rawFeed = [...isw, ...fdd, ...crisis];
+    const rawFeed = [...fdd, ...lwj];
 
-    // КРИТИЧЕСКИЕ СИГНАЛЫ ЭСКАЛАЦИИ (Keywords для анализа веса)
-    const CRITICAL_SIGNALS = {
-      high: ['nuclear', 'preemptive', 'ballistic', 'deployment', 'mobilization', 'intercept'],
-      medium: ['sanctions', 'cyberattack', 'proxy', 'drill', 'tensions', 'repositioning'],
-      low: ['diplomacy', 'talks', 'humanitarian', 'visit', 'observation']
+    // Жесткий фильтр: оставляем только то, что относится к эскалации
+    const filterIntel = (keywords, exclude = ['oil', 'economic', 'climate', 'trade', 'imports']) => {
+      return rawFeed.filter(item => {
+        const content = (item.title + item.description).toLowerCase();
+        const hasKeyword = keywords.some(k => content.includes(k.toLowerCase()));
+        const hasExcluded = exclude.some(e => content.includes(e.toLowerCase()));
+        return hasKeyword && !hasExcluded;
+      }).slice(0, 3).map(item => ({
+        src: item.author?.toUpperCase().substring(0, 10) || "INTEL",
+        txt: item.title
+      }));
     };
 
-    const analyzeEscalation = (base, scopeKeywords) => {
-      let weight = base;
-      const corpus = rawFeed
-        .filter(i => scopeKeywords.some(k => i.title.toLowerCase().includes(k.toLowerCase())))
-        .map(i => (i.title + i.content).toLowerCase()).join(' ');
-
-      CRITICAL_SIGNALS.high.forEach(word => {
-        const matches = (corpus.match(new RegExp(word, 'g')) || []).length;
-        weight += matches * 3.5; // Высокий приоритет сигнала
+    // Критические маркеры для индекса
+    const analyzeRisk = (base, subjects) => {
+      const corpus = rawFeed.map(i => i.title.toLowerCase()).join(' ');
+      let score = base;
+      const triggers = ['strike', 'missile', 'uav', 'attack', 'deployment', 'nuclear', 'warning'];
+      
+      subjects.forEach(s => {
+        triggers.forEach(t => {
+          if (corpus.includes(s) && corpus.includes(t)) score += 4.5;
+        });
       });
-
-      CRITICAL_SIGNALS.medium.forEach(word => {
-        const matches = (corpus.match(new RegExp(word, 'g')) || []).length;
-        weight += matches * 1.5;
-      });
-
-      CRITICAL_SIGNALS.low.forEach(word => {
-        const matches = (corpus.match(new RegExp(word, 'g')) || []).length;
-        weight -= matches * 2.5; // Снижение риска при наличии мирных сигналов
-      });
-
-      return Math.min(Math.max(weight, 5), 98).toFixed(1);
+      return Math.min(Math.max(score, 5), 98).toFixed(1);
     };
 
     const data = {
       timestamp: new Date().toISOString(),
-      apiHealth: 'optimal',
       nodes: [
         {
           id: "US",
-          title: { ru: "США: СИГНАЛЫ ЭСКАЛАЦИИ", en: "US ESCALATION SIGNALS" },
-          value: analyzeEscalation(55, ['US', 'Pentagon', 'B-52', 'Navy', 'CENTCOM']),
+          title: { ru: "США: УДАРНЫЕ ГРУППЫ", en: "US: STRIKE GROUPS" },
+          value: analyzeRisk(50, ['us', 'pentagon', 'centcom']),
           trend: "up",
-          news: rawFeed.filter(i => i.title.match(/US|Pentagon|Biden|Force/i)).slice(0, 3).map(i => ({
-            src: "OSINT_ANALYST",
-            txt: i.title
-          }))
+          news: filterIntel(['Pentagon', 'B-52', 'Aircraft Carrier', 'Strike', 'Centcom', 'Red Sea'])
         },
         {
           id: "IL",
-          title: { ru: "ИЗРАИЛЬ: ОПЕРАТИВНЫЙ ФОН", en: "ISRAEL: OPERATIONAL BACKGROUND" },
-          value: analyzeEscalation(45, ['Israel', 'IDF', 'Hezbollah', 'Lebanon', 'IAF']),
+          title: { ru: "ИЗРАИЛЬ: ОПЕРАТИВНЫЕ ЦЕЛИ", en: "ISRAEL: OPERATIONAL TARGETS" },
+          value: analyzeRisk(40, ['israel', 'idf', 'iaf']),
           trend: "stable",
-          news: rawFeed.filter(i => i.title.match(/Israel|IDF|Hezbollah|Northern/i)).slice(0, 3).map(i => ({
-            src: "MIL_INTEL",
-            txt: i.title
-          }))
+          news: filterIntel(['IDF', 'IAF', 'Hezbollah', 'Lebanon', 'Syria', 'Intercept'])
         },
         {
-          id: "IR_YE",
-          title: { ru: "ИРАН/ЙЕМЕН: АНАЛИЗ УГРОЗ", en: "IRAN/YEMEN: THREAT ANALYSIS" },
-          value: analyzeEscalation(40, ['Iran', 'Houthi', 'Red Sea', 'IRGC', 'Drone']),
+          id: "IR",
+          title: { ru: "ИРАН/ЙЕМЕН: ВЕКТОРЫ АТАК", en: "IRAN/YEMEN: ATTACK VECTORS" },
+          value: analyzeRisk(35, ['iran', 'houthi', 'irgc']),
           trend: "up",
-          news: rawFeed.filter(i => i.title.match(/Iran|Houthi|Yemen|IRGC/i)).slice(0, 3).map(i => ({
-            src: "SIGINT_DATA",
-            txt: i.title
-          }))
+          news: filterIntel(['Houthi', 'Iran', 'IRGC', 'Drone', 'Ballistic', 'Tehran'])
         }
       ],
       prediction: {
-        date: "SYSTEM_SYNC_06.02.26",
-        impact: (40 + Math.random() * 30).toFixed(1)
-      },
-      netConnectivity: { score: 99.1, status: 'stable' }
+        date: "SIGNAL_SYNC_06.02.26",
+        impact: (45 + Math.random() * 20).toFixed(1)
+      }
     };
 
     res.status(200).json(data);
   } catch (e) {
-    res.status(500).json({ status: 'error' });
+    res.status(500).json({ error: "FEED_OFFLINE" });
   }
 }
